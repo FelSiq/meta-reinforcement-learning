@@ -8,6 +8,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 
+from . import matplotlib_render
+
 matplotlib.use("GTK3Agg")
 
 
@@ -28,7 +30,7 @@ class CellCode(enum.IntEnum):
     GOAL = 3
 
 
-class Gridworld(gym.Env):
+class Gridworld(gym.Env, matplotlib_render.MPLRender):
     metadata = {"render.modes": ["human"]}
     action_space = gym.spaces.Discrete(4)
     observation_space = gym.spaces.Box(
@@ -47,7 +49,7 @@ class Gridworld(gym.Env):
         reward_per_action: float = 0.0,
         display_delay: float = 0.05,
     ):
-        super().__init__()
+        super().__init__(display_delay=display_delay)
 
         assert 0.0 <= path_noise_prob <= 1.0
         assert width > 0
@@ -76,11 +78,6 @@ class Gridworld(gym.Env):
         self.random_state = None
 
         self.map = np.empty((self.width, self.height))
-
-        self.plot_ax = None
-        self.plot_fig = None
-        self.plot_draw_bg = False
-        self.plot_display_delay = display_delay
 
     def _gen_map(self):
         if self.random_state is not None:
@@ -190,7 +187,7 @@ class Gridworld(gym.Env):
         ):
             self.done = True
 
-        info = dict()
+        info = dict(plot_background=self.plot_bg)
 
         return observation, reward, self.done, info
 
@@ -198,27 +195,12 @@ class Gridworld(gym.Env):
         self.done = False
         self._gen_map()
         self.current_pos = self.start
-        self.plot_draw_bg = False
+        self.mpl_reset()
         return self.current_pos
 
     def render(self, mode: str = "rgb_array"):
         if mode == "human":
-            if self.plot_fig is None:
-                self.plot_fig = plt.figure()
-                self.plot_draw_bg = False
-
-            if self.plot_ax is None:
-                self.plot_ax = self.plot_fig.add_subplot(111)
-
-            if not self.plot_draw_bg:
-                self.plot_ax.imshow(self.map)
-                self.plot_draw_bg = True
-
-            points = self.plot_ax.plot(
-                self.current_pos.x, self.current_pos.y, "o", color="red"
-            )
-            plt.pause(self.plot_display_delay)
-            points.pop().remove()
+            self.mpl_render()
 
         elif mode == "rgb_array":
             render_img = np.dstack(
@@ -243,57 +225,10 @@ class Gridworld(gym.Env):
             super().render(mode=mode)
 
     def close(self):
-        if self.plot_fig is not None:
-            plt.close(self.plot_fig)
-
-        self.plot_fig = self.plot_ax = None
+        self.mpl_close()
 
     def seed(self, seed=None):
         if seed is not None:
             self.random_state = seed
 
         return [self.random_state]
-
-
-def _test_mode_rgb_array():
-    fig, ax = plt.subplots(1, 1)
-
-    env = Gridworld(traps_ends_episode=True)
-    env.seed(8)
-
-    state = env.reset()
-    map_img = env.render(mode="rgb_array")
-    ax.imshow(map_img)
-
-    for epi in np.arange(1, 10 + 1):
-        ax.set_title(f"Episode: {epi} of 10")
-        state = env.reset()
-        done = False
-
-        while not done:
-            state, _, done, _ = env.step(env.action_space.sample())
-            x = state.x
-            y = state.y
-            points = ax.plot(x, y, "o", color="red")
-            plt.pause(0.1)
-            points.pop().remove()
-
-    plt.show()
-
-
-def _test_mode_human():
-    env = Gridworld(traps_ends_episode=True)
-    env.seed(8)
-
-    for epi in np.arange(1, 3 + 1):
-        state = env.reset()
-        done = False
-
-        while not done:
-            env.render(mode="human")
-            state, _, done, _ = env.step(env.action_space.sample())
-
-
-if __name__ == "__main__":
-    # _test_mode_rgb_array()
-    _test_mode_human()
