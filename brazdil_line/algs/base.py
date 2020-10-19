@@ -125,3 +125,16 @@ class BaseModelDiscrete:
             raise RuntimeError("Environment does not support this operation.")
 
         self.env.state_values_material = None
+
+    @staticmethod
+    def check_pickle_filename(filepath: str) -> str:
+        if not filepath.endswith(".pickle"):
+            filepath += ".pickle"
+
+        return filepath
+
+    def load(self, filepath: str) -> "BaseModelDiscrete":
+        raise NotImplementedError
+
+    def save(self, filepath: str) -> None:
+        raise NotImplementedError

@@ -1,4 +1,5 @@
 import typing as t
+import pickle
 
 import numpy as np
 
@@ -98,3 +99,20 @@ class SARSA(base.BaseModelDiscrete):
             "state_values": self.q_values,
             "epsilon": self.epsilon,
         }
+
+    @classmethod
+    def load(cls, filepath: str) -> "SARSA":
+        filepath = cls.check_pickle_filename(filepath)
+
+        model = None
+
+        with open(filepath, "rb") as f:
+            model = pickle.load(f)
+
+        return model
+
+    def save(self, filepath: str) -> None:
+        filepath = self.check_pickle_filename(filepath)
+
+        with open(filepath, "wb") as f:
+            pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
