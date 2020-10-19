@@ -131,7 +131,7 @@ class BaseModelDiscrete:
         if not hasattr(self.env, "state_values_material"):
             raise RuntimeError("Environment does not support this operation.")
 
-        self.env.mpl_close()
+        self.env.mpl_close(full_disconect=True)
 
     @staticmethod
     def check_pickle_filename(filepath: str) -> str:

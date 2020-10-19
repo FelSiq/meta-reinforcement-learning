@@ -205,9 +205,15 @@ class Gridworld(gym.Env, matplotlib_render.MPLRender):
         if self.state_values is None:
             self.state_values = np.zeros(self.mpl_get_plot_dims(), dtype=float)
 
+        preprocess_state_val_func = self.state_values_material.get(
+            "preprocess_state_val_func"
+        )
         epsilon = self.state_values_material.get("epsilon", 1.0)
 
         for state, act_vals in self.state_values_material["state_values"].items():
+            if preprocess_state_val_func is not None:
+                act_vals = preprocess_state_val_func(act_vals)
+
             self.state_values[state] = epsilon * np.max(act_vals) + (
                 1.0 - epsilon
             ) * np.max(act_vals)

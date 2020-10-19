@@ -61,11 +61,13 @@ class MPLRender:
     def mpl_reset(self):
         self.plot_draw_bg = False
 
-    def mpl_close(self):
+    def mpl_close(self, full_disconnect: bool = False):
         if self.plot_fig is not None:
             plt.close(self.plot_fig)
 
-        self.state_values = self.state_values_material = None
+        if full_disconnect:
+            self.state_values = self.state_values_material = None
+
         self.plot_fig = self.plot_ax1 = self.plot_ax2 = None
 
     def mpl_get_plot_dims(self):
