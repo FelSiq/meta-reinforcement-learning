@@ -115,3 +115,13 @@ class BaseModelDiscrete:
         self, num_episodes: int, episodes_to_print: int = -1, render: bool = False
     ) -> float:
         raise NotImplementedError
+
+    def connect_values_to_env(self, *args, **kwargs) -> None:
+        if not hasattr(self.env, "state_values"):
+            raise RuntimeError("Environment does not support this operation.")
+
+    def disconnect_values_to_env(self) -> None:
+        if not hasattr(self.env, "state_values"):
+            raise RuntimeError("Environment does not support this operation.")
+
+        self.env.state_values = None

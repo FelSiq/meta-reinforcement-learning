@@ -91,3 +91,11 @@ class SARSA(base.BaseModelDiscrete):
                 error = 0.0
 
         return self
+
+    def connect_values_to_env(self, *args, **kwargs) -> None:
+        super().connect_values_to_env(*args, **kwargs)
+
+        """
+        if self.env.state_values is None:
+            self.env.state_values = np.zeros(self.env.(), dtype=float)
+        """
