@@ -117,11 +117,11 @@ class BaseModelDiscrete:
         raise NotImplementedError
 
     def connect_values_to_env(self, *args, **kwargs) -> None:
-        if not hasattr(self.env, "state_values"):
+        if not hasattr(self.env, "state_values_material"):
             raise RuntimeError("Environment does not support this operation.")
 
     def disconnect_values_to_env(self) -> None:
-        if not hasattr(self.env, "state_values"):
+        if not hasattr(self.env, "state_values_material"):
             raise RuntimeError("Environment does not support this operation.")
 
-        self.env.state_values = None
+        self.env.state_values_material = None

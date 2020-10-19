@@ -94,8 +94,7 @@ class SARSA(base.BaseModelDiscrete):
 
     def connect_values_to_env(self, *args, **kwargs) -> None:
         super().connect_values_to_env(*args, **kwargs)
-
-        """
-        if self.env.state_values is None:
-            self.env.state_values = np.zeros(self.env.(), dtype=float)
-        """
+        self.env.state_values_material = {
+            "state_values": self.q_values,
+            "epsilon": self.epsilon,
+        }
