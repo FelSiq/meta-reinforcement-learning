@@ -6,6 +6,8 @@ class MPLRender:
     def __init__(self, display_delay: float, *args, **kawrgs):
         self.map = None
 
+        self.plot_alg_name = None
+
         self.plot_ax1 = None
         self.plot_ax2 = None
         self.plot_fig = None
@@ -19,6 +21,7 @@ class MPLRender:
     def mpl_render(self):
         if self.plot_fig is None:
             self.plot_fig = plt.figure()
+            self.plot_fig.suptitle(self.plot_alg_name)
             self.plot_draw_bg = False
 
         if self.plot_ax1 is None:
@@ -28,6 +31,8 @@ class MPLRender:
 
         if self.state_values is not None and self.plot_ax2 is None:
             self.plot_ax2 = self.plot_fig.add_subplot(122)
+            self.plot_ax1.set_title("Environment view")
+            self.plot_ax2.set_title("State values")
 
         if not self.plot_draw_bg:
             self.plot_bg = self.plot_ax1.imshow(self.map)
@@ -39,7 +44,7 @@ class MPLRender:
 
         if self.plot_ax2 is not None:
             self.plot_ax2.imshow(
-                self.state_values, cmap="PiYG", norm=matplotlib.colors.Normalize(0, 1)
+                self.state_values, cmap="hot", norm=matplotlib.colors.Normalize(0, 1)
             )
 
         plt.pause(self.plot_display_delay)
