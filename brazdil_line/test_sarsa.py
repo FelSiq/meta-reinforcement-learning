@@ -128,7 +128,7 @@ if __name__ == "__main__":
             random_state=args.model_seed,
         )
 
-        model.connect_values_to_env()
+    model.connect_values_to_env()
 
     if args.reset_epsilon:
         model.reset_epsilon(

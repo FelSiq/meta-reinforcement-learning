@@ -65,6 +65,7 @@ class MPLRender:
         if self.plot_fig is not None:
             plt.close(self.plot_fig)
 
+        self.state_values = self.state_values_material = None
         self.plot_fig = self.plot_ax1 = self.plot_ax2 = None
 
     def mpl_get_plot_dims(self):
