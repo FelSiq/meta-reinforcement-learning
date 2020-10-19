@@ -94,6 +94,11 @@ if __name__ == "__main__":
         help="do not save the optimized model",
         action="store_true",
     )
+    parser.add_argument(
+        "--reset-epsilon",
+        help="if given, reset the model epsilon (e-greedy) to the new given schedule ('start', 'end' and 'epsilon-decay-steps')",
+        action="store_true",
+    )
 
     args = parser.parse_args()
 
@@ -124,6 +129,11 @@ if __name__ == "__main__":
         )
 
         model.connect_values_to_env()
+
+    if args.reset_epsilon:
+        model.reset_epsilon(
+            new_epsilon=args.epsilon, epsilon_decay_steps=args.epsilon_decay_steps
+        )
 
     try:
         model.optimize(
