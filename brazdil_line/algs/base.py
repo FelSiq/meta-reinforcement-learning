@@ -66,10 +66,15 @@ class BaseModelDiscrete:
         return tuple(epsilon)
 
     def reset_epsilon(
-        self, new_epsilon: t.Optional[t.Union[float, t.Tuple[float, float]]] = None
+        self,
+        new_epsilon: t.Optional[t.Union[float, t.Tuple[float, float]]] = None,
+        new_epsilon_decay_steps: t.Optional[int] = None,
     ) -> None:
         if new_epsilon is not None:
             self.epsilon_start, self.epsilon_end = self._unpack_epsilon(new_epsilon)
+
+        if new_epsilon_decay_steps is not None:
+            self.epsilon_decay_steps = new_epsilon_decay_steps
 
         self.epsilon = self.epsilon_start
         self.num_epsilon_steps_done = 0
