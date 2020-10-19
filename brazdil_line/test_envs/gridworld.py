@@ -213,6 +213,7 @@ class Gridworld(gym.Env, matplotlib_render.MPLRender):
         self._gen_map()
         self.current_pos = self.start
         self.mpl_reset()
+        np.random.seed()
         return self.current_pos
 
     def _calc_state_values(self):

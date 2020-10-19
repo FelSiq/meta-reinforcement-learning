@@ -60,13 +60,16 @@ class DQLearning(base.BaseModelDiscrete):
 
         assert num_episodes > 0
 
-        if self.random_state is not None:
-            np.random.seed(self.random_state)
+        cur_random_seed = self.random_state
 
         error = 0.0
 
         for epi_ind in np.arange(num_episodes):
             state = self.env.reset()
+
+            if cur_random_seed is not None:
+                np.random.seed(cur_random_seed)
+                cur_random_seed += 1
 
             done = False
 
