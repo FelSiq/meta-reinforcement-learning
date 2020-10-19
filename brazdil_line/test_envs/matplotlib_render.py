@@ -1,12 +1,20 @@
+import typing as t
+
 import matplotlib
 import matplotlib.pyplot as plt
 
 
 class MPLRender:
-    def __init__(self, display_delay: float, *args, **kawrgs):
+    def __init__(
+        self,
+        display_delay: float,
+        environment_name: t.Optional[str] = None,
+        *args,
+        **kawrgs
+    ):
         self.map = None
 
-        self.plot_alg_name = None
+        self.plot_environment_name = environment_name
 
         self.plot_ax1 = None
         self.plot_ax2 = None
@@ -21,7 +29,7 @@ class MPLRender:
     def mpl_render(self):
         if self.plot_fig is None:
             self.plot_fig = plt.figure()
-            self.plot_fig.suptitle(self.plot_alg_name)
+            self.plot_fig.suptitle(self.plot_environment_name)
             self.plot_draw_bg = False
 
         if self.plot_ax1 is None:

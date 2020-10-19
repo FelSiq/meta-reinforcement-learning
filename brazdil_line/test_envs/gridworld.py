@@ -49,7 +49,7 @@ class Gridworld(gym.Env, matplotlib_render.MPLRender):
         reward_per_action: float = 0.0,
         display_delay: float = 0.05,
     ):
-        super().__init__(display_delay=display_delay)
+        super().__init__(display_delay=display_delay, environment_name="Gridworld")
 
         assert 0.0 <= path_noise_prob <= 1.0
         assert width > 0
