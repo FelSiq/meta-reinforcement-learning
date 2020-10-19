@@ -110,7 +110,7 @@ class MCControl(base.BaseModelDiscrete):
             if episodes_to_print > 0 and epi_ind % episodes_to_print == 0:
                 error /= episodes_to_print
                 print(
-                    f"Episode: {epi_ind:<{6}} - avg. monte carlo (MC) estimation error: {error:.4f} - epsilon: {self.epsilon:.4f}"
+                    f"Episode: {epi_ind:<{6}} - avg. monte carlo (MC) {'every visit' if self.every_visit else 'first visit'} estimation error: {error:.4f} - epsilon: {self.epsilon:.4f}"
                 )
                 error = 0.0
 

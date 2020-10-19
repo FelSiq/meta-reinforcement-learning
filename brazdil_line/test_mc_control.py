@@ -29,7 +29,7 @@ if __name__ == "__main__":
         "--discount-factor",
         type=float,
         help="Discount factor of the return",
-        default=1.0,
+        default=0.99,
     )
     parser.add_argument(
         "--display-delay",
@@ -53,7 +53,7 @@ if __name__ == "__main__":
         "--reward-per-action",
         type=float,
         help="reward given to the agent per action/timestep",
-        default=0.0,
+        default=-0.001,
     )
     parser.add_argument(
         "--env-seed",
@@ -111,14 +111,23 @@ if __name__ == "__main__":
         help="if given, reset the model epsilon (e-greedy) to the new given schedule ('start', 'end' and 'epsilon-decay-steps')",
         action="store_true",
     )
+    parser.add_argument(
+        "--first-visit-only",
+        help="if true, update Q-value estimates only with the first appearance of each (s, a) pair in each episode.",
+        action="store_true",
+    )
 
     args = parser.parse_args()
+
+    model_filepath = (
+        f"models/mc_control_{'first_visit' if args.first_visit_only else 'every_visit'}"
+    )
 
     try:
         if args.no_load:
             raise FileNotFoundError
 
-        model = algs.mc_control.MCControl.load("models/mc_control")
+        model = algs.mc_control.MCControl.load(model_filepath)
 
     except FileNotFoundError:
         env = gym.make(
@@ -136,6 +145,7 @@ if __name__ == "__main__":
 
         model = algs.mc_control.MCControl(
             env,
+            every_visit=not args.first_visit_only,
             epsilon=args.epsilon,
             epsilon_decay_steps=args.epsilon_decay_steps,
             random_state=args.model_seed,
@@ -160,4 +170,4 @@ if __name__ == "__main__":
         pass
 
     if not args.no_save:
-        model.save("models/mc_control")
+        model.save(model_filepath)
