@@ -32,7 +32,7 @@ class MPLRender:
         if self.state_values is not None and self.plot_ax2 is None:
             self.plot_ax2 = self.plot_fig.add_subplot(122)
             self.plot_ax1.set_title("Environment view")
-            self.plot_ax2.set_title("State values")
+            self.plot_ax2.set_title("Estimated state values")
 
         if not self.plot_draw_bg:
             self.plot_bg = self.plot_ax1.imshow(self.map)
