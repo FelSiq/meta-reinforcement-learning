@@ -38,6 +38,12 @@ if __name__ == "__main__":
         default=0.25,
     )
     parser.add_argument(
+        "--blind-switch-prob",
+        type=float,
+        help="probability disabling/enabling informed search while generating the environment",
+        default=0.10,
+    )
+    parser.add_argument(
         "--reward-per-action",
         type=float,
         help="reward given to the agent per action/timestep",
@@ -118,6 +124,7 @@ if __name__ == "__main__":
             display_delay=args.display_delay,
             reward_per_action=args.reward_per_action,
             path_noise_prob=args.path_noise_prob,
+            blind_switch_prob=args.blind_switch_prob,
         )
         env.seed(args.env_seed)
 
