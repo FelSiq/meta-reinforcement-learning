@@ -48,10 +48,12 @@ class Gridworld(gym.Env, matplotlib_render.MPLRender):
         traps_ends_episode: bool = True,
         reward_per_action: float = 0.0,
         display_delay: float = 0.05,
+        blind_switch_prob: float = 0.0,
     ):
         super().__init__(display_delay=display_delay, environment_name="Gridworld")
 
         assert 0.0 <= path_noise_prob <= 1.0
+        assert 0.0 <= blind_switch_prob <= 1.0
         assert width > 0
         assert height > 0
         assert num_traps >= 0
@@ -60,6 +62,7 @@ class Gridworld(gym.Env, matplotlib_render.MPLRender):
         assert display_delay > 0.0
 
         self.path_noise_prob = path_noise_prob
+        self.blind_switch_prob = blind_switch_prob
         self.traps_ends_episode = traps_ends_episode
         self.width = width
         self.height = height
@@ -83,12 +86,18 @@ class Gridworld(gym.Env, matplotlib_render.MPLRender):
         if self.random_state is not None:
             np.random.seed(self.random_state)
 
-        def move(ty, tx):
+        def move(ty, tx, blind):
             if not 0 <= ty < self.height or not 0 <= tx < self.width:
-                queue.insert(0, visited.pop())
+                queue.insert(0, (visited.pop(), False))
                 return
 
-            queue.insert(0, (ty, tx))
+            if (
+                self.blind_switch_prob > 0.0
+                and np.random.random() < self.blind_switch_prob
+            ):
+                blind = not blind
+
+            queue.insert(0, ((ty, tx), blind))
 
         self.map = np.full(
             (self.height, self.width), fill_value=CellCode.WALL, dtype=np.int8
@@ -119,10 +128,10 @@ class Gridworld(gym.Env, matplotlib_render.MPLRender):
 
         for start in self.goals.union(self.traps):
             visited = set()
-            queue = [start]
+            queue = [(start, False)]
 
             while queue:
-                y, x = queue.pop()
+                (y, x), blind = queue.pop()
 
                 if self.map[y, x] == CellCode.WALL:
                     self.map[y, x] = CellCode.CLEAN
@@ -134,17 +143,25 @@ class Gridworld(gym.Env, matplotlib_render.MPLRender):
                 dx = dy = 0
 
                 if np.random.random() > 0.5:
-                    dy = +1 if y < self.start.y else -1
+                    dy = (
+                        np.random.choice([-1, 1])
+                        if blind
+                        else (+1 if y < self.start.y else -1)
+                    )
 
                 else:
-                    dx = +1 if x < self.start.x else -1
+                    dx = (
+                        np.random.choice([-1, 1])
+                        if blind
+                        else (+1 if x < self.start.x else -1)
+                    )
 
                 # Note: insert noise
                 if np.random.random() <= self.path_noise_prob:
                     dx *= -1
                     dy *= -1
 
-                move(y + dy, x + dx)
+                move(y + dy, x + dx, blind)
 
         return self.map
 
