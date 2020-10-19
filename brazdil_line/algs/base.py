@@ -95,7 +95,8 @@ class BaseModelDiscrete:
         self.num_actions_done += 1
 
         if self.update_epsilon_in_action:
-            self._update_epsilon(timestep=self.num_actions_done)
+            self.num_epsilon_steps_done += 1
+            self._update_epsilon(timestep=self.num_epsilon_steps_done)
 
         return int(action)
 
@@ -103,7 +104,8 @@ class BaseModelDiscrete:
         self.num_episodes_done += 1
 
         if self.update_epsilon_in_episode:
-            self._update_epsilon(timestep=self.num_episodes_done)
+            self.num_epsilon_steps_done += 1
+            self._update_epsilon(timestep=self.num_epsilon_steps_done)
 
     def take_greedy_action(self, state: t.Any) -> int:
         raise NotImplementedError
