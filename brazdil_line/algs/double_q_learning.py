@@ -11,6 +11,10 @@ class DQLearning(base.BaseModelDiscrete):
         super().__init__(*args, **kwargs)
         self.q_values = dict()
 
+    @staticmethod
+    def _preprocess_value_val_func(item):
+        return item.sum(axis=0)
+
     def take_greedy_action(self, state: t.Any) -> int:
         if state not in self.q_values:
             return np.random.randint(self.num_actions)
@@ -101,7 +105,7 @@ class DQLearning(base.BaseModelDiscrete):
         super().connect_values_to_env(*args, **kwargs)
         self.env.state_values_material = {
             "state_values": self.q_values,
-            "preprocess_value_val_func": lambda item: item.sum(axis=0),
+            "preprocess_value_val_func": self._preprocess_value_val_func,
             "epsilon": self.epsilon,
         }
 
