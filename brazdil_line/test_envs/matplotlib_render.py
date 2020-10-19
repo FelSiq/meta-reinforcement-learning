@@ -1,8 +1,11 @@
+import matplotlib
 import matplotlib.pyplot as plt
 
 
 class MPLRender:
     def __init__(self, display_delay: float, *args, **kawrgs):
+        self.map = None
+
         self.plot_ax1 = None
         self.plot_ax2 = None
         self.plot_fig = None
@@ -10,6 +13,7 @@ class MPLRender:
         self.plot_draw_bg = False
         self.plot_display_delay = display_delay
 
+        self.state_values_material = None
         self.state_values = None
 
     def mpl_render(self):
@@ -35,7 +39,7 @@ class MPLRender:
 
         if self.plot_ax2 is not None:
             self.plot_ax2.imshow(
-                self.state_values, cmap="PiYG", norm=matplotlib.colors.Normalize(-1, 1)
+                self.state_values, cmap="PiYG", norm=matplotlib.colors.Normalize(0, 1)
             )
 
         plt.pause(self.plot_display_delay)
@@ -49,3 +53,6 @@ class MPLRender:
             plt.close(self.plot_fig)
 
         self.plot_fig = self.plot_ax1 = self.plot_ax2 = None
+
+    def mpl_get_plot_dims(self):
+        return self.map.shape

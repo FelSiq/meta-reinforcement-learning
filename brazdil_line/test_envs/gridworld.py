@@ -198,8 +198,23 @@ class Gridworld(gym.Env, matplotlib_render.MPLRender):
         self.mpl_reset()
         return self.current_pos
 
+    def _calc_state_values(self):
+        if self.state_values_material is None:
+            return
+
+        if self.state_values is None:
+            self.state_values = np.zeros(self.mpl_get_plot_dims(), dtype=float)
+
+        epsilon = self.state_values_material.get("epsilon", 1.0)
+
+        for state, act_vals in self.state_values_material["state_values"].items():
+            self.state_values[state] = epsilon * np.max(act_vals) + (
+                1.0 - epsilon
+            ) * np.max(act_vals)
+
     def render(self, mode: str = "rgb_array"):
         if mode == "human":
+            self._calc_state_values()
             self.mpl_render()
 
         elif mode == "rgb_array":
