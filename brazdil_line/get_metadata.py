@@ -24,7 +24,7 @@ def save_seeds(full_path: str, *args):
 
 def load_seeds(full_path: str):
     with open(full_path, "r") as f_aux:
-        return f_aux.read().strip().split(",")
+        return map(int, f_aux.read().strip().split(","))
 
 
 def extract_metafeatures(env, artificial: bool) -> t.List[t.Union[int, float]]:
@@ -91,14 +91,16 @@ def init_env(
 
 def binsearch(y):
     start = 0
-    end = y.shape[0]
-    while start < end:
+    ind = y.shape[0]
+    end = y.shape[0] - 1
+    while start <= end:
         middle = start + (end - start) // 2
         if pd.isna(y.iloc[middle, :]).any():
+            ind = middle
             end = middle - 1
         else:
             start = middle + 1
-    return start
+    return ind
 
 
 def build_metadataset(
