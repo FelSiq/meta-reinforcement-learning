@@ -49,6 +49,7 @@ class Gridworld(gym.Env, matplotlib_render.MPLRender):
         reward_per_action: float = 0.0,
         display_delay: float = 0.05,
         blind_switch_prob: float = 0.0,
+        max_timesteps: int = -1,
     ):
         super().__init__(display_delay=display_delay, environment_name="Gridworld")
 
@@ -66,6 +67,8 @@ class Gridworld(gym.Env, matplotlib_render.MPLRender):
         self.traps_ends_episode = traps_ends_episode
         self.width = width
         self.height = height
+        self.max_timesteps = max_timesteps
+        self.timesteps = -1
 
         self.reward_per_action = reward_per_action
 
@@ -166,6 +169,14 @@ class Gridworld(gym.Env, matplotlib_render.MPLRender):
         return self.map
 
     def step(self, action):
+        info = dict(plot_background=self.plot_bg)
+
+        if self.max_timesteps >= 0 and self.timesteps >= self.max_timesteps:
+            self.done = True
+            return self.current_pos, -1, self.done, info
+
+        self.timesteps += 1
+
         new_y, new_x = self.current_pos
 
         if action == 0:
@@ -204,12 +215,11 @@ class Gridworld(gym.Env, matplotlib_render.MPLRender):
         ):
             self.done = True
 
-        info = dict(plot_background=self.plot_bg)
-
         return observation, reward, self.done, info
 
     def reset(self):
         self.done = False
+        self.timesteps = 0
         self._gen_map()
         self.current_pos = self.start
         self.mpl_reset()
@@ -220,21 +230,45 @@ class Gridworld(gym.Env, matplotlib_render.MPLRender):
         if self.state_values_material is None:
             return
 
-        if self.state_values is None:
-            self.state_values = np.zeros(self.mpl_get_plot_dims(), dtype=float)
+        if "state_values" in self.state_values_material:
+            if self.state_values is None:
+                self.state_values = np.zeros(self.mpl_get_plot_dims(), dtype=float)
 
-        preprocess_state_val_func = self.state_values_material.get(
-            "preprocess_state_val_func"
-        )
-        epsilon = self.state_values_material.get("epsilon", 1.0)
+            preprocess_state_val_func = self.state_values_material.get(
+                "preprocess_state_val_func"
+            )
+            epsilon = self.state_values_material.get("epsilon", 1.0)
 
-        for state, act_vals in self.state_values_material["state_values"].items():
-            if preprocess_state_val_func is not None:
-                act_vals = preprocess_state_val_func(act_vals)
+            for state, act_vals in self.state_values_material["state_values"].items():
+                if preprocess_state_val_func is not None:
+                    act_vals = preprocess_state_val_func(act_vals)
 
-            self.state_values[state] = epsilon * np.max(act_vals) + (
-                1.0 - epsilon
-            ) * np.max(act_vals)
+                self.state_values[state] = epsilon * np.mean(act_vals) + (
+                    1.0 - epsilon
+                ) * np.max(act_vals)
+
+        elif "eval_function" in self.state_values_material:
+            aux_w = np.arange(self.width)
+            aux_h = np.arange(self.height)
+
+            y_coord, x_coord = np.meshgrid(aux_h, aux_w)
+
+            coords = np.column_stack((y_coord.ravel(), x_coord.ravel()))
+
+            eval_function = self.state_values_material["eval_function"]
+
+            state_action_values = eval_function(coords)
+
+            epsilon = self.state_values_material.get("epsilon", 1.0)
+
+            self.state_values = (1 - epsilon) * state_action_values.max(
+                axis=1
+            ) + epsilon * state_action_values.mean(axis=1)
+
+            self.state_values = self.state_values.reshape(self.map.shape)
+
+        else:
+            raise ValueError("Can't calculate heatmap (insuficient material).")
 
     def render(self, mode: str = "rgb_array"):
         if mode == "human":
