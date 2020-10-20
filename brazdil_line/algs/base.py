@@ -123,6 +123,27 @@ class BaseModelDiscrete:
     ) -> float:
         raise NotImplementedError
 
+    def run(self, render: bool = False) -> np.ndarray:
+        state = self.env.reset()
+
+        done = False
+        total_reward = 0.0
+
+        while not done:
+            if render:
+                self.env.render(mode="human")
+
+            action = self.take_greedy_action(state)
+            next_state, reward, done, _ = self.env.step(action)
+            state = next_state
+
+            total_reward += reward
+
+            if done:
+                self.env.close()
+
+        return total_reward
+
     def connect_values_to_env(self, *args, **kwargs) -> None:
         if not hasattr(self.env, "state_values_material"):
             raise RuntimeError("Environment does not support this operation.")
