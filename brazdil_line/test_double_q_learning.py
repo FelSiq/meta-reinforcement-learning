@@ -152,5 +152,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         pass
 
+    model.run(render=True)
+
     if not args.no_save:
         model.save("models/double_q_learning")

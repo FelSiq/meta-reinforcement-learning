@@ -149,7 +149,7 @@ if __name__ == "__main__":
             epsilon=args.epsilon,
             epsilon_decay_steps=args.epsilon_decay_steps,
             random_state=args.model_seed,
-            discount_factor=1.0,
+            discount_factor=args.discount_factor,
         )
 
     model.connect_values_to_env()
@@ -168,6 +168,8 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
         pass
+
+    model.run(render=True)
 
     if not args.no_save:
         model.save(model_filepath)
