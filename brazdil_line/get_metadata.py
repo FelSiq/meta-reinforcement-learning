@@ -23,6 +23,7 @@ def save_seeds(full_path: str, *args):
 
 
 def load_seeds(full_path: str):
+    print(full_path)
     with open(full_path, "r") as f_aux:
         return map(int, f_aux.read().strip().split(","))
 
@@ -70,8 +71,8 @@ def init_env(
     np.random.seed(hyperparam_seed)
 
     env_args = dict(
-        height=np.random.randint(16, 64),
-        width=np.random.randint(16, 64),
+        height=np.random.randint(12, 48),
+        width=np.random.randint(12, 48),
         num_traps=np.random.randint(8, 32),
         num_goals=np.random.randint(1, 8),
         path_noise_prob=0.5 * np.random.random(),
@@ -132,14 +133,12 @@ def build_metadataset(
     else:
         raise NotImplementedError
 
-    X_checkpoint_path = os.path.join(
-        checkpoint_path, f"X_checkpoint{'_artificial' if artificial else ''}.csv"
-    )
-    y_checkpoint_path = os.path.join(
-        checkpoint_path, f"y_checkpoint{'_artificial' if artificial else ''}.csv"
-    )
+    path_suffix = f"_{num_episodes}{'_artificial' if artificial else ''}.csv"
+
+    X_checkpoint_path = os.path.join(checkpoint_path, "X_checkpoint" + path_suffix)
+    y_checkpoint_path = os.path.join(checkpoint_path, "y_checkpoint" + path_suffix)
     seeds_checkpoint_path = os.path.join(
-        checkpoint_path, f"seeds_checkpoint{'_artificial' if artificial else ''}.csv"
+        checkpoint_path, "seeds_checkpoint" + path_suffix
     )
 
     try:
@@ -150,7 +149,7 @@ def build_metadataset(
             full_path=seeds_checkpoint_path
         )
         print(
-            f"Loaded checkpoint files, restoring from iteration {start_ind + 1} / {y.shape[0]}."
+            f"Loaded checkpoint files, restoring from iteration {start_ind + 1} / {max(size, y.shape[0])}."
         )
 
     except FileNotFoundError:
@@ -159,7 +158,11 @@ def build_metadataset(
         y = pd.DataFrame(index=np.arange(size), columns=base_alg_names)
         start_ind = 0
 
-    for i in np.arange(start_ind, size):
+    if X.shape[0] < size:
+        X = X.append(pd.DataFrame(index=np.arange(X.shape[0], size), columns=X.columns))
+        y = y.append(pd.DataFrame(index=np.arange(y.shape[0], size), columns=X.columns))
+
+    for i in np.arange(start_ind, X.shape[0]):
         print(f"Began iteration: {i + 1} / {size}...")
         env = init_env(
             env_seed=env_seed,
@@ -220,7 +223,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--num-episodes",
-        default=100,
+        default=3000,
         metavar="M",
         type=int,
         help="number of episodes to optimize each base model",
@@ -234,7 +237,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--env-max-steps",
-        default=3000,
+        default=1000,
         metavar="K",
         type=int,
         help="maximum number of timesteps allowed in the environment (a.k.a. budget)",
