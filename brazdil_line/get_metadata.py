@@ -160,7 +160,7 @@ def build_metadataset(
 
     if X.shape[0] < size:
         X = X.append(pd.DataFrame(index=np.arange(X.shape[0], size), columns=X.columns))
-        y = y.append(pd.DataFrame(index=np.arange(y.shape[0], size), columns=X.columns))
+        y = y.append(pd.DataFrame(index=np.arange(y.shape[0], size), columns=y.columns))
 
     for i in np.arange(start_ind, X.shape[0]):
         print(f"Began iteration: {i + 1} / {size}...")
