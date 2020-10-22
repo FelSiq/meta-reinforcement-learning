@@ -1,6 +1,7 @@
 import typing as t
 import argparse
 import os
+import inspect
 
 import pandas as pd
 import numpy as np
@@ -11,6 +12,18 @@ import algs.sarsa
 import algs.mc_control
 import algs.q_learning
 import algs.double_q_learning
+import metafeatures
+
+
+def get_mtf_extraction_methods():
+    return [
+        (name, method)
+        for name, method in inspect.getmembers(metafeatures)
+        if name.startswith("ft_")
+    ]
+
+
+_mtf_methods = get_mtf_extraction_methods()
 
 
 def save_data(data: pd.DataFrame, full_path: str) -> None:
@@ -23,7 +36,6 @@ def save_seeds(full_path: str, *args):
 
 
 def load_seeds(full_path: str):
-    print(full_path)
     with open(full_path, "r") as f_aux:
         return map(int, f_aux.read().strip().split(","))
 
@@ -31,7 +43,7 @@ def load_seeds(full_path: str):
 def extract_metafeatures(env, artificial: bool) -> t.List[t.Union[int, float]]:
     """Extract meta-features."""
     if artificial:
-        metafeatures = [
+        mtf_values = [
             env.height,
             env.width,
             env.num_traps,
@@ -41,9 +53,16 @@ def extract_metafeatures(env, artificial: bool) -> t.List[t.Union[int, float]]:
         ]
 
     else:
-        raise NotImplementedError
+        env.reset()
 
-    return metafeatures
+        mtf_values = []
+
+        for mtf_name, mtf_mtd in _mtf_methods:
+            features = mtf_mtd(env)
+            _, mtf_vals = metafeatures.summarize(feature=mtf_name, values=features)
+            mtf_values.extend(mtf_vals)
+
+    return mtf_values
 
 
 def run_base_models(
@@ -143,6 +162,26 @@ def adjust_seeds(
     return env_seed, hyperparam_seed, alg_seed
 
 
+def get_all_mtf_names():
+    env = init_env(
+        env_seed=0,
+        hyperparam_seed=0,
+        env_max_steps=0,
+        reward_per_action=0,
+    )
+
+    env.reset()
+
+    mtf_names = []
+
+    for mtf_name, mtf_mtd in _mtf_methods:
+        mtf_names.extend(
+            metafeatures.summarize(feature=mtf_name, values=mtf_mtd(env))[0]
+        )
+
+    return mtf_names
+
+
 def build_metadataset(
     size: int,
     env_seed: int,
@@ -171,7 +210,7 @@ def build_metadataset(
         ]
 
     else:
-        raise NotImplementedError
+        metafeat_names = get_all_mtf_names()
 
     path_suffix_feat = f"_{num_episodes}{'_artificial' if artificial else ''}"
     path_suffix_env = f"_{num_episodes}"
