@@ -123,7 +123,7 @@ def binsearch(y):
     end = y.shape[0] - 1
     while start <= end:
         middle = start + (end - start) // 2
-        if pd.isna(y.iloc[middle, :]).any():
+        if pd.isna(y.iloc[middle, :]).all():
             ind = middle
             end = middle - 1
         else:
