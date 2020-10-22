@@ -50,14 +50,22 @@ def run_base_models(
     env,
     base_models: t.List[algs.base.BaseModelDiscrete],
     num_episodes: int,
+    y: np.ndarray,
 ) -> t.List[float]:
     res = len(base_models) * [0.0]
 
     for i, model in enumerate(base_models):
-        print(f"  Running {i + 1} / {len(base_models)} base algorithm...", end=" ")
-        model.optimize(num_episodes=num_episodes)
-        res[i] = model.run()
-        print("Done")
+        if np.isnan(y[i]):
+            print(f"  Running {i + 1} / {len(base_models)} base algorithm...", end=" ")
+            model.optimize(num_episodes=num_episodes)
+            res[i] = model.run()
+            print("Done")
+
+        else:
+            print(
+                f"  Got previously saved result for {i + 1} / {len(base_models)} base algorithm."
+            )
+            res[i] = y[i]
 
     return res
 
@@ -104,6 +112,37 @@ def binsearch(y):
     return ind
 
 
+def prepare_base_models(env, random_state: int):
+    candidates = [
+        algs.sarsa.SARSA,
+        algs.mc_control.MCControl,
+        algs.q_learning.QLearning,
+        algs.double_q_learning.DQLearning,
+    ]
+
+    base_models = len(candidates) * [None]
+
+    for i, alg in enumerate(candidates):
+        base_models[i] = alg(env=env, random_state=random_state)
+
+    return base_models
+
+
+def adjust_seeds(
+    env_seed: int, hyperparam_seed: int, alg_seed: int, cur_ind: int, new_ind: int
+):
+    assert new_ind >= 0
+    assert cur_ind >= 0
+
+    diff = cur_ind - new_ind
+
+    env_seed -= 1 * diff
+    hyperparam_seed -= 2 * diff
+    alg_seed -= 3 * diff
+
+    return env_seed, hyperparam_seed, alg_seed
+
+
 def build_metadataset(
     size: int,
     env_seed: int,
@@ -115,6 +154,7 @@ def build_metadataset(
     num_episodes: int,
     env_max_steps: int,
     reward_per_action: float,
+    debug: bool,
 ):
     assert num_episodes > 0
 
@@ -133,34 +173,74 @@ def build_metadataset(
     else:
         raise NotImplementedError
 
-    path_suffix = f"_{num_episodes}{'_artificial' if artificial else ''}.csv"
+    path_suffix_feat = f"_{num_episodes}{'_artificial' if artificial else ''}"
+    path_suffix_env = f"_{num_episodes}"
 
-    X_checkpoint_path = os.path.join(checkpoint_path, "X_checkpoint" + path_suffix)
-    y_checkpoint_path = os.path.join(checkpoint_path, "y_checkpoint" + path_suffix)
+    if debug:
+        path_suffix_feat += "_debug"
+        path_suffix_env += "_debug"
+
+    path_suffix_feat += ".csv"
+    path_suffix_env += ".csv"
+
+    X_checkpoint_path = os.path.join(checkpoint_path, "X_checkpoint" + path_suffix_feat)
+    y_checkpoint_path = os.path.join(checkpoint_path, "y_checkpoint" + path_suffix_env)
     seeds_checkpoint_path = os.path.join(
-        checkpoint_path, "seeds_checkpoint" + path_suffix
+        checkpoint_path, "seeds_checkpoint" + path_suffix_env
     )
 
     try:
         X = pd.read_csv(X_checkpoint_path, index_col=0)
-        y = pd.read_csv(y_checkpoint_path, index_col=0)
-        start_ind = binsearch(y)
-        env_seed, hyperparam_seed, alg_seed = load_seeds(
-            full_path=seeds_checkpoint_path
-        )
+        start_ind_X = binsearch(X)
         print(
-            f"Loaded checkpoint files, restoring from iteration {start_ind + 1} / {max(size, y.shape[0])}."
+            f"Loaded{' artificial' if artificial else ''} features X '{X_checkpoint_path}' checkpoint "
+            f"files (starting from position {start_ind_X + 1}."
         )
 
     except FileNotFoundError:
-        print("Checkpoint files not found.")
+        print(
+            f"Checkpoint files for{' artificial' if artificial else ''} features X not found."
+        )
         X = pd.DataFrame(index=np.arange(size), columns=metafeat_names)
+        start_ind_X = 0
+
+    try:
+        y = pd.read_csv(y_checkpoint_path, index_col=0)
+        start_ind_y = binsearch(y)
+        print(
+            f"Loaded target y '{y_checkpoint_path}' checkpoint files (starting from position {start_ind_y + 1})."
+        )
+
+    except FileNotFoundError:
         y = pd.DataFrame(index=np.arange(size), columns=base_alg_names)
-        start_ind = 0
+        print("Checkpoint files for target y not found.")
+
+    try:
+        env_seed, hyperparam_seed, alg_seed = load_seeds(
+            full_path=seeds_checkpoint_path
+        )
+        print(f"Loaded random seeds from file '{seeds_checkpoint_path}'.")
+
+    except FileNotFoundError:
+        start_ind_X = start_ind_y = 0
+        print("Not found any information about previous random seeds.")
+
+    start_ind = min(start_ind_X, start_ind_y)
+    print(f"Starting from position {start_ind + 1}.")
+
+    env_seed, hyperparam_seed, alg_seed = adjust_seeds(
+        env_seed,
+        hyperparam_seed,
+        alg_seed,
+        cur_ind=max(start_ind_X, start_ind_y),
+        new_ind=start_ind,
+    )
 
     if X.shape[0] < size:
         X = X.append(pd.DataFrame(index=np.arange(X.shape[0], size), columns=X.columns))
         y = y.append(pd.DataFrame(index=np.arange(y.shape[0], size), columns=y.columns))
+
+    assert X.shape[0] == y.shape[0]
 
     for i in np.arange(start_ind, X.shape[0]):
         print(f"Began iteration: {i + 1} / {size}...")
@@ -171,18 +251,15 @@ def build_metadataset(
             reward_per_action=reward_per_action,
         )
 
-        base_models = [
-            algs.sarsa.SARSA(env=env, random_state=alg_seed),
-            algs.mc_control.MCControl(env=env, random_state=alg_seed),
-            algs.q_learning.QLearning(env=env, random_state=alg_seed),
-            algs.double_q_learning.DQLearning(env=env, random_state=alg_seed),
-        ]
+        base_models = prepare_base_models(env=env, random_state=alg_seed)
 
         cur_X = extract_metafeatures(env=env, artificial=artificial)
+
         cur_y = run_base_models(
             env=env,
             base_models=base_models,
             num_episodes=num_episodes,
+            y=y.iloc[i, :].values,
         )
 
         assert len(cur_X) == X.shape[1]
@@ -275,6 +352,11 @@ if __name__ == "__main__":
         type=int,
         help="number of iterations while extracting meta-features to save the current results to file",
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="if given, append '_debug' to the saved files to avoid overwrite existent data.",
+    )
 
     args = parser.parse_args()
     out_dir_path = "metadata"
@@ -285,7 +367,13 @@ if __name__ == "__main__":
     except OSError:
         pass
 
-    filename = f"metafeatures_{args.num_episodes}{'_artificial' if args.artificial else ''}.csv"
+    filename = (
+        f"metafeatures_{args.num_episodes}"
+        f"{'_artificial' if args.artificial else ''}"
+        f"{'_debug' if args.debug else ''}"
+        f".csv"
+    )
+
     full_path = os.path.join(out_dir_path, filename)
 
     res = build_metadataset(checkpoint_path=out_dir_path, **vars(args))
