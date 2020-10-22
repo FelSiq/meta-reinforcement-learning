@@ -71,10 +71,10 @@ def init_env(
     np.random.seed(hyperparam_seed)
 
     env_args = dict(
-        height=np.random.randint(12, 48),
-        width=np.random.randint(12, 48),
+        height=np.random.randint(10, 32),
+        width=np.random.randint(10, 32),
         num_traps=np.random.randint(8, 32),
-        num_goals=np.random.randint(1, 8),
+        num_goals=np.random.randint(1, 6),
         path_noise_prob=0.5 * np.random.random(),
         blind_switch_prob=0.25 * np.random.random(),
     )
@@ -194,7 +194,7 @@ def build_metadataset(
         env_seed += 1
         hyperparam_seed += 2
         alg_seed += 3
-        print(f"Done iteration {i}.")
+        print(f"Done iteration {i + 1}.")
 
         if i % checkpoint_iter == 0:
             save_data(data=X, full_path=X_checkpoint_path)
@@ -285,7 +285,7 @@ if __name__ == "__main__":
     except OSError:
         pass
 
-    filename = f"metafeatures{'_artificial' if args.artificial else ''}.csv"
+    filename = f"metafeatures_{args.num_episodes}{'_artificial' if args.artificial else ''}.csv"
     full_path = os.path.join(out_dir_path, filename)
 
     res = build_metadataset(checkpoint_path=out_dir_path, **vars(args))
