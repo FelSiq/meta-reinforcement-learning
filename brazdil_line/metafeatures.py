@@ -43,22 +43,22 @@ def ft_trap_dist_manh(env):
 
 
 def _in_radius_vals(env, values: np.ndarray, radius_prop: float):
-    assert 0 < radius_prop <= 1.0
+    assert 0 < radius_prop <= 1
 
     width = env.width
-    height = env.width
+    height = env.height
 
-    radius = radius_prop * min(width, height)
+    radius = radius_prop * 0.5 * (width + height)
 
     return values[values <= radius]
 
 
-def ft_goal_radial_dist(env, radius_prop: float = 0.2):
+def ft_goal_radial_dist(env, radius_prop: float = 0.5):
     euclid_dists = ft_goal_dist_euclid(env)
     return _in_radius_vals(env, values=euclid_dists, radius_prop=radius_prop)
 
 
-def ft_trap_radial_dist(env, radius_prop: float = 0.2):
+def ft_trap_radial_dist(env, radius_prop: float = 0.5):
     euclid_dists = ft_trap_dist_euclid(env)
     return _in_radius_vals(env, values=euclid_dists, radius_prop=radius_prop)
 
