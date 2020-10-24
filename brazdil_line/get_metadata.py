@@ -419,5 +419,5 @@ if __name__ == "__main__":
 
     print("Finished")
 
-    res.to_csv(full_path)
+    save_data(data=res, full_path=full_path)
     print(f"Saved dataframe to {full_path}.")
