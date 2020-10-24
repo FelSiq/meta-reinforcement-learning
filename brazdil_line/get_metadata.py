@@ -27,7 +27,7 @@ _mtf_methods = get_mtf_extraction_methods()
 
 
 def save_data(data: pd.DataFrame, full_path: str) -> None:
-    data.to_csv(full_path)
+    data.to_csv(full_path, float_format="%.6f")
 
 
 def save_seeds(full_path: str, *args):
