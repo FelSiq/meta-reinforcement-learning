@@ -90,12 +90,15 @@ class BaseModelDiscrete:
 
         return self.epsilon
 
+    def take_random_action(self, state: t.Any = None):
+        return np.random.randint(self.num_actions)
+
     def pick_action(self, state: t.Any) -> int:
         if np.random.random() > self.epsilon:
             action = self.take_greedy_action(state)
 
         else:
-            action = np.random.randint(self.num_actions)
+            action = self.take_random_action(state)
 
         self.num_actions_done += 1
 
@@ -103,7 +106,7 @@ class BaseModelDiscrete:
             self.num_epsilon_steps_done += 1
             self._update_epsilon(timestep=self.num_epsilon_steps_done)
 
-        return int(action)
+        return action
 
     def episode_end(self) -> None:
         self.num_episodes_done += 1
@@ -133,7 +136,7 @@ class BaseModelDiscrete:
             if render:
                 self.env.render(mode="human")
 
-            action = self.take_greedy_action(state)
+            action = self.take_greedy_action(state, train=False)
             next_state, reward, done, _ = self.env.step(action)
             state = next_state
 
