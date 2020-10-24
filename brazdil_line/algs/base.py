@@ -115,7 +115,7 @@ class BaseModelDiscrete:
             self.num_epsilon_steps_done += 1
             self._update_epsilon(timestep=self.num_epsilon_steps_done)
 
-    def take_greedy_action(self, state: t.Any) -> int:
+    def take_greedy_action(self, state: t.Any, train: bool = True) -> int:
         raise NotImplementedError
 
     def step(self, pack: t.Dict[str, t.Any]) -> float:

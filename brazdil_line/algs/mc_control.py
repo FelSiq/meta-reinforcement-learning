@@ -16,7 +16,7 @@ class MCControl(base.BaseModelDiscrete):
     def _preprocess_value_val_func(item):
         return item[1, :]
 
-    def take_greedy_action(self, state: t.Any) -> int:
+    def take_greedy_action(self, state: t.Any, train: bool = True) -> int:
         if state not in self.q_values:
             return np.random.randint(self.num_actions)
 
