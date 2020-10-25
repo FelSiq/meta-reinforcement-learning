@@ -4,6 +4,7 @@ import warnings
 
 import numpy as np
 import scipy.stats
+import test_envs.gridworld
 
 
 def ft_goal_dist_euclid(env):
@@ -61,6 +62,22 @@ def ft_goal_radial_dist(env, radius_prop: float = 0.5):
 def ft_trap_radial_dist(env, radius_prop: float = 0.5):
     euclid_dists = ft_trap_dist_euclid(env)
     return _in_radius_vals(env, values=euclid_dists, radius_prop=radius_prop)
+
+
+def ft_wall_patch_prop(env, patch_prop: float = 0.2):
+    start_y, start_x = np.asarray(list(env.start), dtype=int)
+
+    half_width = 0.5 * patch_prop * env.width
+    half_height = 0.5 * patch_prop * env.height
+
+    min_y = max(0, start_y - int(half_height))
+    max_y = min(env.height - 1, start_y + int(np.ceil(half_height))) + 1
+    min_x = max(0, start_x - int(half_width))
+    max_x = min(env.width - 1, start_x + int(np.ceil(half_width))) + 1
+
+    patch = env.map[min_y:max_y, :][:, min_x:max_x]
+
+    return np.mean(patch == test_envs.gridworld.CellCode.WALL)
 
 
 summary_functions = {
