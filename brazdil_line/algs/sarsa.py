@@ -11,7 +11,7 @@ class SARSA(base.BaseModelDiscrete):
         super().__init__(*args, **kwargs)
         self.q_values = dict()
 
-    def take_greedy_action(self, state: t.Any) -> int:
+    def take_greedy_action(self, state: t.Any, train: bool = True) -> int:
         if state not in self.q_values:
             return np.random.randint(self.num_actions)
 
