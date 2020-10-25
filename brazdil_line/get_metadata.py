@@ -228,20 +228,7 @@ def build_metadataset(
         checkpoint_path, "seeds_checkpoint" + path_suffix_env
     )
 
-    try:
-        X = pd.read_csv(X_checkpoint_path, index_col=0)
-        start_ind_X = binsearch(X)
-        print(
-            f"Loaded{' artificial' if artificial else ''} features X '{X_checkpoint_path}' checkpoint "
-            f"files (starting from position {start_ind_X + 1}."
-        )
-
-    except FileNotFoundError:
-        print(
-            f"Checkpoint files for{' artificial' if artificial else ''} features X not found."
-        )
-        X = pd.DataFrame(index=np.arange(size), columns=metafeat_names)
-        start_ind_X = 0
+    start_ind_y = start_ind_X = 0
 
     try:
         y = pd.read_csv(y_checkpoint_path, index_col=0)
@@ -253,6 +240,27 @@ def build_metadataset(
     except FileNotFoundError:
         y = pd.DataFrame(index=np.arange(size), columns=base_alg_names)
         print("Checkpoint files for target y not found.")
+
+    try:
+        X = pd.read_csv(X_checkpoint_path, index_col=0)
+
+        if X.shape[1] != len(metafeat_names):
+            print("Number of features seems to not match with the checkpoint files.")
+            size = y.shape[0]
+            raise ValueError
+
+        start_ind_X = binsearch(X)
+        print(
+            f"Loaded{' artificial' if artificial else ''} features X '{X_checkpoint_path}' checkpoint "
+            f"files (starting from position {start_ind_X + 1}."
+        )
+
+    except (FileNotFoundError, ValueError):
+        print(
+            f"Checkpoint files for{' artificial' if artificial else ''} features X not found."
+        )
+        X = pd.DataFrame(index=np.arange(size), columns=metafeat_names)
+        start_ind_X = 0
 
     try:
         env_seed, hyperparam_seed, alg_seed = load_seeds(
