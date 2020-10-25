@@ -18,7 +18,7 @@ Coord = collections.namedtuple("Coord", ("y", "x"))
 
 class CellColorRGB:
     TRAP = (127, 0, 0)
-    CLEAN = (255, 255, 255)
+    CLEAN = (160, 160, 190)
     WALL = (0, 0, 0)
     GOAL = (0, 255, 64)
 
