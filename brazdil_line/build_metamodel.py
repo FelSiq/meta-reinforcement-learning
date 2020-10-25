@@ -7,6 +7,8 @@ import pandas as pd
 import sklearn.metrics
 import numpy as np
 
+import utils
+
 num_base_models = 4
 
 parser = argparse.ArgumentParser(description="Train a meta-regressor model")
@@ -36,19 +38,13 @@ parser.add_argument(
 args = parser.parse_args()
 
 
-if args.artificial:
-    data = pd.read_csv(f"metadata/metafeatures_{args.num_train_episodes}_artificial.csv")
-    X = data.iloc[:, :-num_base_models]
-    y = data.iloc[:, -num_base_models:]
+X, y = utils.get_metadata(
+    num_train_episodes=args.num_train_episodes,
+    artificial=args.artificial,
+    num_base_models=num_base_models,
+)
 
-    assert y.shape[1] == num_base_models
-
-else:
-    data = pd.read_csv(f"metadata/metafeatures_{args.num_train_episodes}.csv")
-    X = data.iloc[:, :-num_base_models]
-    y = data.iloc[:, -num_base_models:]
-
-    assert y.shape[1] == num_base_models
+assert y.shape[1] == num_base_models
 
 res_reg = []
 res_cls = []
