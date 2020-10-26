@@ -12,7 +12,7 @@ def get_metadata(
         f"{'_artificial' if artificial else ''}.csv"
     )
 
-    data = pd.read_csv(metadata_path)
+    data = pd.read_csv(metadata_path, index_col=0)
     X = data.iloc[:, :-num_base_models]
     y = data.iloc[:, -num_base_models:]
 
