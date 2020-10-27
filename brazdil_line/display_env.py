@@ -6,11 +6,26 @@ import test_envs.gridworld
 
 
 def plot():
-    height = 128
-    width = 128
+    height = 10
+    width = 10
 
-    probs_a = np.linspace(0, 0.50, 2)
-    probs_b = np.linspace(0, 0.25, 2)
+    probs_a = np.linspace(0, 0.50, 1)
+    probs_b = np.linspace(0, 0.25, 1)
+
+    if probs_a.size * probs_b.size == 1:
+        env = get_env(
+            path_noise_prob=probs_a[0],
+            blind_switch_prob=probs_b[0],
+            height=height,
+            width=width,
+        )
+        render = env.render("rgb_array")
+        plt.imshow(render, aspect="auto")
+        plt.scatter(env.start[1], env.start[0], color="red")
+        plt.axis("off")
+        plt.tight_layout()
+        plt.show()
+        return
 
     fig, axes = plt.subplots(probs_a.size, probs_b.size, sharex=True, sharey=True)
 
