@@ -44,7 +44,7 @@ def plot_y():
         ax.set_title(f"Episodios = {num_train_episodes}")
         ax.set_ylabel("Frequencia")
         legend_labels, _ = ax.get_legend_handles_labels()
-        ax.legend(legend_labels, ["Sim", "Não"], title="Convergiu?")
+        ax.legend(legend_labels, ["Não", "Sim"], title="Convergiu?")
 
     plt.tight_layout()
     plt.show()
