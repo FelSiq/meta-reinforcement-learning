@@ -22,6 +22,12 @@ def plot():
         render = env.render("rgb_array")
         plt.imshow(render, aspect="auto")
         plt.scatter(env.start[1], env.start[0], color="red")
+
+        traps_y, traps_x = zip(*list(env.traps))
+        goals_y, goals_x = zip(*list(env.goals))
+
+        plt.scatter(traps_x, traps_y, c=[(1.0, 0.4, 0.0)], marker="X", s=128)
+        plt.scatter(goals_x, goals_y, c=[(0.0, 0.4, 1.0)], marker="*", s=128)
         plt.axis("off")
         plt.tight_layout()
         plt.show()
