@@ -71,7 +71,7 @@ def plot_tsne(n_tries: int = 10, artificial: bool = False):
         m = X.shape[1]
         X = pca.fit_transform(X)
 
-        print("PCA dimension reduction:", X.shape[1] / m)
+        print(f"PCA dimension reduction: {X.shape[1] / m:.3f}")
 
         kl_divs = np.full(n_tries, fill_value=np.inf)
 
