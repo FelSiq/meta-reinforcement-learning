@@ -36,6 +36,11 @@ parser.add_argument(
     default=30,
     type=int,
 )
+parser.add_argument(
+    "--latex",
+    action="store_true",
+    help="if true, generate the output as a latex tabular",
+)
 args = parser.parse_args()
 
 
@@ -105,9 +110,34 @@ def combine_stats(
     return combined_mean, np.sqrt(total_var)
 
 
-for i, alg in enumerate(y.columns):
-    print("Algorithm:", alg)
+latex_cls_out = [
+    "    "
+    r"\cline{2-5} & "
+    r"\textbf{Algoritmo} & "
+    r"\textbf{$\text{ACC}_{\text{aleatório}}$} & "
+    r"\textbf{$\text{ACC}_{\text{treino}} \pm \sigma_{\text{treino}}$} & "
+    r"\textbf{$\text{ACC}_{\text{teste}} \pm \sigma_{\text{teste}}$} \\ \cline{2-5}"
+]
 
+latex_reg_out = [
+    "    "
+    r"\cline{2-5} & "
+    r"\textbf{Algoritmo} & "
+    r"\textbf{$\sigma_{y}$} & "
+    r"\textbf{$\text{RMSE}_{\text{treino}} \pm \sigma_{\text{treino}}$} & "
+    r"\textbf{$\text{RMSE}_{\text{teste}} \pm \sigma_{\text{teste}}$} \\ \cline{2-5}"
+]
+
+
+latex_names = {
+    "sarsa": "SARSA",
+    "mccontrol": "MC Control",
+    "qlearning": "Q-Learning",
+    "dqlearning": "D. Q-Learning",
+}
+
+
+for i, alg in enumerate(y.columns):
     train_mean_cls, train_std_cls, test_mean_cls, test_std_cls = res_cls[i].values.T
 
     combined_train_mean_cls, combined_train_std_cls = combine_stats(
@@ -115,21 +145,6 @@ for i, alg in enumerate(y.columns):
     )
     combined_test_mean_cls, combined_test_std_cls = combine_stats(
         means=test_mean_cls, stds=test_std_cls, sample_size_per_group=y.shape[0]
-    )
-
-    print(
-        "  classification - Accuracy by random chance :",
-        np.mean(y.iloc[:, i].values > 0.0),
-    )
-    print(
-        "  classification - Train accuracy / std      :",
-        1.0 - combined_train_mean_cls,
-        combined_train_std_cls,
-    )
-    print(
-        "  classification - Test accuracy / std       :",
-        1.0 - combined_test_mean_cls,
-        combined_test_std_cls,
     )
 
     train_mean_reg, train_std_reg, test_mean_reg, test_std_reg = res_reg[i].values.T
@@ -141,17 +156,64 @@ for i, alg in enumerate(y.columns):
         means=test_mean_reg, stds=test_std_reg, sample_size_per_group=y.shape[0]
     )
 
-    print(
-        "  regression     - target standard dev       :",
-        np.std(y.iloc[:, i].values, ddof=1),
-    )
-    print(
-        "  regression     - Train rmse / std          :",
-        combined_train_mean_reg,
-        combined_train_std_reg,
-    )
-    print(
-        "  regression     - Test rmse / std           :",
-        combined_test_mean_reg,
-        combined_test_std_reg,
-    )
+    pos_cls_prop = np.mean(y.iloc[:, i].values > 0.0)
+    maj_cls_prop = max(pos_cls_prop, 1 - pos_cls_prop)
+    label_std = np.std(y.iloc[:, i].values, ddof=1)
+
+    if not args.latex:
+        print("Algorithm:", alg)
+
+        print(
+            "  classification - Accuracy by random chance :",
+            maj_cls_prop,
+        )
+        print(
+            "  classification - Train accuracy / std      :",
+            1.0 - combined_train_mean_cls,
+            combined_train_std_cls,
+        )
+        print(
+            "  classification - Test accuracy / std       :",
+            1.0 - combined_test_mean_cls,
+            combined_test_std_cls,
+        )
+
+        print(
+            "  regression     - target standard dev       :",
+            label_std,
+        )
+        print(
+            "  regression     - Train rmse / std          :",
+            combined_train_mean_reg,
+            combined_train_std_reg,
+        )
+        print(
+            "  regression     - Test rmse / std           :",
+            combined_test_mean_reg,
+            combined_test_std_reg,
+        )
+
+    else:
+        latex_cls_out.append(
+            f"{latex_names[alg.lower()]:<{15}} & {maj_cls_prop:.4f} & "
+            f"{1.0 - combined_train_mean_cls:.4f} $\pm$ {combined_train_std_cls:.4f} & "
+            fr"{1.0 - combined_test_mean_cls:.4f} $\pm$ {combined_test_std_cls:.4f} \\ \cline{{2-5}}"
+        )
+        latex_reg_out.append(
+            f"{latex_names[alg.lower()]:<{15}} & {label_std:.4f} & "
+            f"{combined_train_mean_reg:.4f} $\pm$ {combined_train_std_reg:.4f} & "
+            fr"{combined_test_mean_reg:.4f} $\pm$ {combined_test_std_reg:.4f} \\ \cline{{2-5}}"
+        )
+
+
+if args.latex:
+    print(f"    \hline")
+    print(fr"    \multirow{{{2 * y.shape[1] + 4}}}{{*}}{{{args.num_train_episodes}}}")
+    print(r"    & \multicolumn{4}{c|}{\textbf{Meta-classificação}} \\")
+    print("\n    & ".join(latex_cls_out))
+
+    print()
+
+    print(r"    & \multicolumn{4}{c|}{\textbf{Meta-regressão}} \\")
+    print("\n    & ".join(latex_reg_out))
+    print(f"    \hline")
