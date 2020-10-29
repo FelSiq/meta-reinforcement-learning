@@ -207,7 +207,19 @@ for i, alg in enumerate(y.columns):
 
 
 if args.latex:
-    print(f"    \hline")
+    print(r"    \hline")
+
+    if args.artificial:
+        print(
+            r"    \multicolumn{5}{|c|}{\textbf{Meta-características \aspas{Artificial}}} \\"
+        )
+
+    else:
+        print(
+            r"    \multicolumn{5}{|c|}{\textbf{Meta-características \aspas{Elaboradas}}} \\"
+        )
+
+    print(r"    \hline")
     print(fr"    \multirow{{{2 * y.shape[1] + 4}}}{{*}}{{{args.num_train_episodes}}}")
     print(r"    & \multicolumn{4}{c|}{\textbf{Meta-classificação}} \\")
     print("\n    & ".join(latex_cls_out))
