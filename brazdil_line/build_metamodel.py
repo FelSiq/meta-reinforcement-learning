@@ -32,6 +32,12 @@ parser.add_argument(
 )
 parser.add_argument(
     "--num-boost-round",
+    help="number of trees (boosting rounds) while boosting",
+    default=100,
+    type=int,
+)
+parser.add_argument(
+    "--n-repetitions",
     help="number of repetitions of the K-fold cross validation",
     default=30,
     type=int,
@@ -52,50 +58,55 @@ X, y = utils.get_metadata(
 
 assert y.shape[1] == num_base_models
 
-res_reg = []
-res_cls = []
+res_reg = [np.zeros((args.n_repetitions, 4)) for _ in np.arange(num_base_models)]
+res_cls = [np.zeros((args.n_repetitions, 4)) for _ in np.arange(num_base_models)]
 
 params_reg = {"objective": "reg:squarederror", "max_depth": 5, "gpu_id": 0}
 params_cls = {"objective": "binary:logistic", "max_depth": 5, "gpu_id": 0}
 
 np.random.seed(16)
-random_seeds = np.random.randint(1000, size=y.shape[1])
+random_seeds = np.random.randint(1000, size=args.n_repetitions * y.shape[1])
 KFold = sklearn.model_selection.KFold(n_splits=10)
 
 
-for i in np.arange(num_base_models):
-    print(f"Fitting {i + 1}th model...", end=" ")
+for j in np.arange(args.n_repetitions):
+    for i in np.arange(num_base_models):
+        print(f"({j + 1} / {args.n_repetitions}) Fitting {i + 1}th model...", end=" ")
 
-    data_reg = xgboost.DMatrix(X, label=y.iloc[:, i])
-    data_cls = xgboost.DMatrix(X, label=y.iloc[:, i] > 0.0)
+        data_reg = xgboost.DMatrix(X, label=y.iloc[:, i])
+        data_cls = xgboost.DMatrix(X, label=y.iloc[:, i] > 0.0)
 
-    cur_res_reg = xgboost.cv(
-        dtrain=data_reg,
-        params=params_reg,
-        metrics="rmse",
-        num_boost_round=args.num_boost_round,
-        nfold=args.nfold,
-        seed=random_seeds[i],
-    )
+        cur_res_reg = xgboost.cv(
+            dtrain=data_reg,
+            params=params_reg,
+            metrics="rmse",
+            num_boost_round=args.num_boost_round,
+            nfold=args.nfold,
+            seed=random_seeds[i + num_base_models * j],
+        )
 
-    cur_res_cls = xgboost.cv(
-        dtrain=data_cls,
-        params=params_cls,
-        metrics="error",
-        num_boost_round=args.num_boost_round,
-        nfold=args.nfold,
-        seed=random_seeds[i],
-    )
+        cur_res_cls = xgboost.cv(
+            dtrain=data_cls,
+            params=params_cls,
+            metrics="error",
+            num_boost_round=args.num_boost_round,
+            nfold=args.nfold,
+            seed=random_seeds[i + num_base_models * j],
+        )
 
-    res_reg.append(cur_res_reg)
-    res_cls.append(cur_res_cls)
+        res_reg[i][j, :] = cur_res_reg.iloc[-1, :].values
+        res_cls[i][j, :] = cur_res_cls.iloc[-1, :].values
 
-    print("Done.")
+        print("Done.")
 
 
 def combine_stats(
     means: np.ndarray, stds: np.ndarray, sample_size_per_group: int
 ) -> t.Tuple[float, float]:
+
+    assert means.shape[0] == args.n_repetitions
+    assert stds.shape[0] == args.n_repetitions
+
     num_groups = means.size
 
     combined_mean = np.mean(means)
@@ -110,35 +121,35 @@ def combine_stats(
     return combined_mean, np.sqrt(total_var)
 
 
-latex_cls_out = [
-    "    "
-    r"\cline{2-5} & "
-    r"\textbf{Algoritmo} & "
-    r"\textbf{$\text{ACC}_{\text{aleatório}}$} & "
-    r"\textbf{$\text{ACC}_{\text{treino}} \pm \sigma_{\text{treino}}$} & "
-    r"\textbf{$\text{ACC}_{\text{teste}} \pm \sigma_{\text{teste}}$} \\ \cline{2-5}"
-]
+if args.latex:
+    latex_cls_out = [
+        "    "
+        r"\cline{2-5} & "
+        r"\textbf{Algoritmo} & "
+        r"\textbf{$\text{ACC}_{\text{aleatório}}$} & "
+        r"\textbf{$\text{ACC}_{\text{treino}} \pm \sigma_{\text{treino}}$} & "
+        r"\textbf{$\text{ACC}_{\text{teste}} \pm \sigma_{\text{teste}}$} \\ \cline{2-5}"
+    ]
 
-latex_reg_out = [
-    "    "
-    r"\cline{2-5} & "
-    r"\textbf{Algoritmo} & "
-    r"\textbf{$\sigma_{y}$} & "
-    r"\textbf{$\text{RMSE}_{\text{treino}} \pm \sigma_{\text{treino}}$} & "
-    r"\textbf{$\text{RMSE}_{\text{teste}} \pm \sigma_{\text{teste}}$} \\ \cline{2-5}"
-]
+    latex_reg_out = [
+        "    "
+        r"\cline{2-5} & "
+        r"\textbf{Algoritmo} & "
+        r"\textbf{$\sigma_{y}$} & "
+        r"\textbf{$\text{RMSE}_{\text{treino}} \pm \sigma_{\text{treino}}$} & "
+        r"\textbf{$\text{RMSE}_{\text{teste}} \pm \sigma_{\text{teste}}$} \\ \cline{2-5}"
+    ]
 
-
-latex_names = {
-    "sarsa": "SARSA",
-    "mccontrol": "MC Control",
-    "qlearning": "Q-Learning",
-    "dqlearning": "D. Q-Learning",
-}
+    latex_names = {
+        "sarsa": "SARSA",
+        "mccontrol": "MC Control",
+        "qlearning": "Q-Learning",
+        "dqlearning": "D. Q-Learning",
+    }
 
 
 for i, alg in enumerate(y.columns):
-    train_mean_cls, train_std_cls, test_mean_cls, test_std_cls = res_cls[i].values.T
+    train_mean_cls, train_std_cls, test_mean_cls, test_std_cls = res_cls[i].T
 
     combined_train_mean_cls, combined_train_std_cls = combine_stats(
         means=train_mean_cls, stds=train_std_cls, sample_size_per_group=y.shape[0]
@@ -147,7 +158,7 @@ for i, alg in enumerate(y.columns):
         means=test_mean_cls, stds=test_std_cls, sample_size_per_group=y.shape[0]
     )
 
-    train_mean_reg, train_std_reg, test_mean_reg, test_std_reg = res_reg[i].values.T
+    train_mean_reg, train_std_reg, test_mean_reg, test_std_reg = res_reg[i].T
 
     combined_train_mean_reg, combined_train_std_reg = combine_stats(
         means=train_mean_reg, stds=train_std_reg, sample_size_per_group=y.shape[0]
