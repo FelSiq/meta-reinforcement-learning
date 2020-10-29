@@ -58,68 +58,52 @@ X, y = utils.get_metadata(
 
 assert y.shape[1] == num_base_models
 
-res_reg = [np.zeros((args.n_repetitions, 4)) for _ in np.arange(num_base_models)]
-res_cls = [np.zeros((args.n_repetitions, 4)) for _ in np.arange(num_base_models)]
+res_reg = []
+res_cls = []
 
 params_reg = {"objective": "reg:squarederror", "max_depth": 5, "gpu_id": 0}
 params_cls = {"objective": "binary:logistic", "max_depth": 5, "gpu_id": 0}
 
 np.random.seed(16)
-random_seeds = np.random.randint(1000, size=args.n_repetitions * y.shape[1])
-KFold = sklearn.model_selection.KFold(n_splits=10)
+random_seeds = np.random.randint(1000, size=y.shape[1])
+
+fold_splitter_cls = sklearn.model_selection.RepeatedStratifiedKFold(
+    n_splits=10, n_repeats=args.n_repetitions
+)
+fold_splitter_reg = sklearn.model_selection.RepeatedKFold(
+    n_splits=10, n_repeats=args.n_repetitions
+)
 
 
-for j in np.arange(args.n_repetitions):
-    for i in np.arange(num_base_models):
-        print(f"({j + 1} / {args.n_repetitions}) Fitting {i + 1}th model...", end=" ")
+for i in np.arange(num_base_models):
+    print(f"Fitting {i + 1}th model...", end=" ")
 
-        data_reg = xgboost.DMatrix(X, label=y.iloc[:, i])
-        data_cls = xgboost.DMatrix(X, label=y.iloc[:, i] > 0.0)
+    data_reg = xgboost.DMatrix(X, label=y.iloc[:, i])
+    data_cls = xgboost.DMatrix(X, label=y.iloc[:, i] > 0.0)
 
-        cur_res_reg = xgboost.cv(
-            dtrain=data_reg,
-            params=params_reg,
-            metrics="rmse",
-            num_boost_round=args.num_boost_round,
-            nfold=args.nfold,
-            seed=random_seeds[i + num_base_models * j],
-        )
+    cur_res_reg = xgboost.cv(
+        dtrain=data_reg,
+        params=params_reg,
+        metrics="rmse",
+        num_boost_round=args.num_boost_round,
+        folds=fold_splitter_reg,
+        seed=random_seeds[i],
+    )
 
-        cur_res_cls = xgboost.cv(
-            dtrain=data_cls,
-            params=params_cls,
-            metrics="error",
-            num_boost_round=args.num_boost_round,
-            nfold=args.nfold,
-            seed=random_seeds[i + num_base_models * j],
-        )
+    cur_res_cls = xgboost.cv(
+        dtrain=data_cls,
+        params=params_cls,
+        metrics="error",
+        num_boost_round=args.num_boost_round,
+        folds=fold_splitter_cls,
+        seed=random_seeds[i],
+        stratified=True,
+    )
 
-        res_reg[i][j, :] = cur_res_reg.iloc[-1, :].values
-        res_cls[i][j, :] = cur_res_cls.iloc[-1, :].values
+    res_reg.append(cur_res_reg.iloc[-1, :].values)
+    res_cls.append(cur_res_cls.iloc[-1, :].values)
 
-        print("Done.")
-
-
-def combine_stats(
-    means: np.ndarray, stds: np.ndarray, sample_size_per_group: int
-) -> t.Tuple[float, float]:
-
-    assert means.shape[0] == args.n_repetitions
-    assert stds.shape[0] == args.n_repetitions
-
-    num_groups = means.size
-
-    combined_mean = np.mean(means)
-
-    total_inst = num_groups * sample_size_per_group
-
-    total_var = (
-        sample_size_per_group * np.sum(np.square(means - combined_mean))
-        + (sample_size_per_group - 1) * np.sum(np.square(stds))
-    ) / (total_inst - 1)
-
-    return combined_mean, np.sqrt(total_var)
-
+    print("Done.")
 
 if args.latex:
     latex_cls_out = [
@@ -149,23 +133,18 @@ if args.latex:
 
 
 for i, alg in enumerate(y.columns):
-    train_mean_cls, train_std_cls, test_mean_cls, test_std_cls = res_cls[i].T
-
-    combined_train_mean_cls, combined_train_std_cls = combine_stats(
-        means=train_mean_cls, stds=train_std_cls, sample_size_per_group=y.shape[0]
-    )
-    combined_test_mean_cls, combined_test_std_cls = combine_stats(
-        means=test_mean_cls, stds=test_std_cls, sample_size_per_group=y.shape[0]
-    )
-
-    train_mean_reg, train_std_reg, test_mean_reg, test_std_reg = res_reg[i].T
-
-    combined_train_mean_reg, combined_train_std_reg = combine_stats(
-        means=train_mean_reg, stds=train_std_reg, sample_size_per_group=y.shape[0]
-    )
-    combined_test_mean_reg, combined_test_std_reg = combine_stats(
-        means=test_mean_reg, stds=test_std_reg, sample_size_per_group=y.shape[0]
-    )
+    (
+        combined_train_mean_cls,
+        combined_train_std_cls,
+        combined_test_mean_cls,
+        combined_test_std_cls,
+    ) = res_cls[i].T
+    (
+        combined_train_mean_reg,
+        combined_train_std_reg,
+        combined_test_mean_reg,
+        combined_test_std_reg,
+    ) = res_reg[i].T
 
     pos_cls_prop = np.mean(y.iloc[:, i].values > 0.0)
     maj_cls_prop = max(pos_cls_prop, 1 - pos_cls_prop)
