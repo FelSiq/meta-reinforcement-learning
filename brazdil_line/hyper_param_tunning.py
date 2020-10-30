@@ -120,7 +120,9 @@ def grid_search(model_params, param_test, X, y):
 
     for param, v in grid_search.best_params_.items():
         low, high = param_test[param][0], param_test[param][-1]
-        assert low < v < high, f"Best '{param}' value is in limit [{low}, {high}], consider expanding it"
+        assert (
+            low < v < high
+        ), f"Best '{param}' value is in limit [{low}, {high}], consider expanding it"
 
     return grid_search.best_params_
 
@@ -129,7 +131,8 @@ cls_id = 0
 subplot_row = 1
 subplot_col = 4
 cv_fit = True
-plots = [False, False, False, True]
+plots = [True, False, False, True]
+cached = False
 
 # Preparation
 X, y = utils.get_metadata(num_train_episodes=500, artificial=False)
@@ -143,33 +146,58 @@ X_train, X_test, y_train, y_test = sklearn.model_selection.train_test_split(
 assert X_train.shape[1] == X_test.shape[1]
 
 params = {
-    "learning_rate": 0.1,
-    "n_estimators": 1000,
+    "learning_rate": 0.08,
+    "n_estimators": 8000,
     "max_depth": 5,
-    "min_child_weight": 1,
-    "gamma": 0,
-    "subsample": 0.8,
-    "colsample_bytree": 0.8,
+    "min_child_weight": 30,
+    "gamma": 0.5,
+    "alpha": 0.5,
+    "lambda": 400.0,
+    "subsample": 0.7,
+    "colsample_bytree": 0.3,
     "objective": "binary:logistic",
-    "scale_pos_weight": 1,
+    "scale_pos_weight": 0.9,
     "seed": 16,
+    "gpu_id": 0,
+    "tree_method": "gpu_hist",
 }
+
+print(f"(Class id = {cls_id}) Initial parameters:")
+
+for p, v in params.items():
+    print(f"{p}: {v}")
 
 if cv_fit and plots[0]:
     plt.subplot(subplot_row, subplot_col, 1)
-    fit(X_train, y_train, params, plot=True, show=False)
+    fit(
+        X_train,
+        y_train,
+        params,
+        num_boost_round=params["n_estimators"],
+        early_stopping_rounds=500,
+        plot=False,
+        show=False,
+    )
+
+y_preds = xgboost.XGBClassifier(**params).fit(X_train, y_train).predict(X_test)
+print("Test F1 score:", sklearn.metrics.roc_auc_score(y_test, y_preds))
+print("Test accuracy score:", sklearn.metrics.accuracy_score(y_test, y_preds))
+maj_prop = np.mean(y_test)
+print("Maj class prop:", max(maj_prop, 1-maj_prop))
+exit(0)
 
 
 # Hyper-parameter tunning step 01
 # Hyper-parameters: max_depth, min_child_weight
 best_param1 = None
 
-if cls_id == 0:
-    best_param1 = {"min_child_weight": 11, "max_depth": 9}
+if cached:
+    if cls_id == 0:
+        best_param1 = {"min_child_weight": 11, "max_depth": 9}
 
 if best_param1 is None:
     param_test1 = {
-        "max_depth": np.arange(8, 14, 1),
+        "max_depth": np.arange(7, 10, 1),
         "min_child_weight": np.arange(6, 32, 1),
     }
 
@@ -181,8 +209,9 @@ params.update(best_param1)
 # Hyper-parameters: gamma
 best_param2 = None
 
-if cls_id == 0:
-    best_param2 = {"gamma": 0.84}
+if cached:
+    if cls_id == 0:
+        best_param2 = {"gamma": 0.84}
 
 if best_param2 is None:
     param_test2 = {
@@ -202,8 +231,9 @@ if cv_fit and plots[1]:
 # Hyper-parameters: subsample, colsample_bytree
 best_param3 = None
 
-if cls_id == 0:
-    best_param3 = {"subsample": 0.866, "colsample_bytree": 0.8}
+if cached:
+    if cls_id == 0:
+        best_param3 = {"subsample": 0.866, "colsample_bytree": 0.8}
 
 if best_param3 is None:
     param_test3 = {
@@ -233,8 +263,9 @@ if cv_fit and plots[2]:
 # Hyper-parameters: alpha
 best_param4 = None
 
-if cls_id == 0:
-    best_param4 = {"reg_alpha": 3.474}
+if cached:
+    if cls_id == 0:
+        best_param4 = {"reg_alpha": 3.474}
 
 if best_param4 is None:
     """
@@ -255,7 +286,7 @@ params.update(best_param4)
 # Hyper-parameter tunning step 05
 # Less lr, more trees
 params["learning_rate"] = 0.01
-params["n_estimators"] = 3000
+params["n_estimators"] = 2300
 
 # Checking if any meaningful improvement
 if cv_fit and plots[3]:
