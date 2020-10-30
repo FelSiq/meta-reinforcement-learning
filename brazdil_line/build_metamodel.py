@@ -33,7 +33,7 @@ parser.add_argument(
 parser.add_argument(
     "--num-boost-round",
     help="number of trees (boosting rounds) while boosting",
-    default=100,
+    default=8000,
     type=int,
 )
 parser.add_argument(
@@ -61,8 +61,28 @@ assert y.shape[1] == num_base_models
 res_reg = []
 res_cls = []
 
-params_reg = {"objective": "reg:squarederror", "max_depth": 5, "gpu_id": 0}
-params_cls = {"objective": "binary:logistic", "max_depth": 5, "gpu_id": 0}
+params_reg = {
+    "objective": "reg:squarederror",
+    "max_depth": 2,
+    "gpu_id": 0,
+    "tree_method": "gpu_hist",
+}
+
+params_cls = {
+    "learning_rate": 0.08,
+    "max_depth": 5,
+    "min_child_weight": 30,
+    "gamma": 0.5,
+    "alpha": 0.5,
+    "lambda": 400.0,
+    "subsample": 0.7,
+    "colsample_bytree": 0.3,
+    "objective": "binary:logistic",
+    "scale_pos_weight": 0.9,
+    "seed": 16,
+    "gpu_id": 0,
+    "tree_method": "gpu_hist",
+}
 
 np.random.seed(16)
 random_seeds = np.random.randint(1000, size=y.shape[1])
@@ -85,19 +105,21 @@ for i in np.arange(num_base_models):
         dtrain=data_reg,
         params=params_reg,
         metrics="rmse",
-        num_boost_round=args.num_boost_round,
+        num_boost_round=10,  # args.num_boost_round,
         folds=fold_splitter_reg,
         seed=random_seeds[i],
+        early_stopping_rounds=500,
     )
 
     cur_res_cls = xgboost.cv(
         dtrain=data_cls,
         params=params_cls,
-        metrics="error",
+        metrics=["error", "auc"],
         num_boost_round=args.num_boost_round,
         folds=fold_splitter_cls,
         seed=random_seeds[i],
         stratified=True,
+        early_stopping_rounds=500,
     )
 
     res_reg.append(cur_res_reg.iloc[-1, :].values)
@@ -105,23 +127,22 @@ for i in np.arange(num_base_models):
 
     print("Done.")
 
+
 if args.latex:
     latex_cls_out = [
-        "    "
-        r"\cline{2-5} & "
-        r"\textbf{Algoritmo} & "
-        r"\textbf{$\text{ACC}_{\text{aleatório}}$} & "
-        r"\textbf{$\text{ACC}_{\text{treino}} \pm \sigma_{\text{treino}}$} & "
-        r"\textbf{$\text{ACC}_{\text{teste}} \pm \sigma_{\text{teste}}$} \\ \cline{2-5}"
+        [r"    & \textbf{Algoritmo}"],
+        [r"    & \textbf{$\text{ACC}_{\text{maioria}}$}"],
+        [r"    & \textbf{$\text{ACC}_{\text{treino}} \pm \sigma$}"],
+        [r"    & \textbf{$\text{ACC}_{\text{teste}} \pm \sigma$}"],
+        [r"    & \textbf{$\text{AUC}_{\text{traino}} \pm \sigma$}"],
+        [r"    & \textbf{$\text{AUC}_{\text{teste}} \pm \sigma$}"],
     ]
 
     latex_reg_out = [
-        "    "
-        r"\cline{2-5} & "
-        r"\textbf{Algoritmo} & "
-        r"\textbf{$\sigma_{y}$} & "
-        r"\textbf{$\text{RMSE}_{\text{treino}} \pm \sigma_{\text{treino}}$} & "
-        r"\textbf{$\text{RMSE}_{\text{teste}} \pm \sigma_{\text{teste}}$} \\ \cline{2-5}"
+        [r"    & \textbf{Algoritmo}"],
+        [r"    & \textbf{$\sigma_{y}$}"],
+        [r"    & \textbf{$\text{RMSE}_{\text{treino}} \pm \sigma$}"],
+        [r"    & \textbf{$\text{RMSE}_{\text{teste}} \pm \sigma$}"],
     ]
 
     latex_names = {
@@ -136,15 +157,19 @@ for i, alg in enumerate(y.columns):
     (
         combined_train_mean_cls,
         combined_train_std_cls,
+        combined_train_auc_mean_cls,
+        combined_train_auc_std_cls,
         combined_test_mean_cls,
         combined_test_std_cls,
-    ) = res_cls[i].T
+        combined_test_auc_mean_cls,
+        combined_test_auc_std_cls,
+    ) = res_cls[i]
     (
         combined_train_mean_reg,
         combined_train_std_reg,
         combined_test_mean_reg,
         combined_test_std_reg,
-    ) = res_reg[i].T
+    ) = res_reg[i]
 
     pos_cls_prop = np.mean(y.iloc[:, i].values > 0.0)
     maj_cls_prop = max(pos_cls_prop, 1 - pos_cls_prop)
@@ -184,15 +209,28 @@ for i, alg in enumerate(y.columns):
         )
 
     else:
-        latex_cls_out.append(
-            f"{latex_names[alg.lower()]:<{15}} & {maj_cls_prop:.4f} & "
-            f"{1.0 - combined_train_mean_cls:.4f} $\pm$ {combined_train_std_cls:.4f} & "
-            fr"{1.0 - combined_test_mean_cls:.4f} $\pm$ {combined_test_std_cls:.4f} \\ \cline{{2-5}}"
+        latex_cls_out[0].append(f"{latex_names[alg.lower()]}")
+        latex_cls_out[1].append(f"{maj_cls_prop:.3f}")
+        latex_cls_out[2].append(
+            f"{1.0 - combined_train_mean_cls:.3f} $\pm$ {combined_train_std_cls:.3f}"
         )
-        latex_reg_out.append(
-            f"{latex_names[alg.lower()]:<{15}} & {label_std:.4f} & "
-            f"{combined_train_mean_reg:.4f} $\pm$ {combined_train_std_reg:.4f} & "
-            fr"{combined_test_mean_reg:.4f} $\pm$ {combined_test_std_reg:.4f} \\ \cline{{2-5}}"
+        latex_cls_out[3].append(
+            fr"{1.0 - combined_test_mean_cls:.3f} $\pm$ {combined_test_std_cls:.3f}"
+        )
+        latex_cls_out[4].append(
+            fr"{combined_train_auc_mean_cls:.3f} $\pm$ {combined_train_auc_std_cls:.3f}"
+        )
+        latex_cls_out[5].append(
+            fr"{combined_test_auc_mean_cls:.3f} $\pm$ {combined_test_auc_std_cls:.3f}"
+        )
+
+        latex_reg_out[0].append(f"{latex_names[alg.lower()]}")
+        latex_reg_out[1].append(f"{label_std:.3f}")
+        latex_reg_out[2].append(
+            f"{combined_train_mean_reg:.3f} $\pm$ {combined_train_std_reg:.3f}"
+        )
+        latex_reg_out[3].append(
+            fr"{combined_test_mean_reg:.3f} $\pm$ {combined_test_std_reg:.3f}"
         )
 
 
@@ -201,21 +239,22 @@ if args.latex:
 
     if args.artificial:
         print(
-            r"    \multicolumn{5}{|c|}{\textbf{Meta-características \aspas{Artificial}}} \\"
+            r"    \multicolumn{6}{|c|}{\textbf{Meta-características \aspas{Artificial}}} \\"
         )
 
     else:
         print(
-            r"    \multicolumn{5}{|c|}{\textbf{Meta-características \aspas{Elaboradas}}} \\"
+            r"    \multicolumn{6}{|c|}{\textbf{Meta-características \aspas{Elaboradas}}} \\"
         )
 
     print(r"    \hline")
     print(fr"    \multirow{{{2 * y.shape[1] + 4}}}{{*}}{{{args.num_train_episodes}}}")
-    print(r"    & \multicolumn{4}{c|}{\textbf{Meta-classificação}} \\")
-    print("\n    & ".join(latex_cls_out))
+    print(r"    & \multicolumn{5}{c|}{\textbf{Meta-classificação}} \\ \cline{2-6}")
+    print("\n".join(map(lambda st: " & ".join(st) + r" \\ \cline{2-6}", latex_cls_out)))
 
     print()
 
-    print(r"    & \multicolumn{4}{c|}{\textbf{Meta-regressão}} \\")
-    print("\n    & ".join(latex_reg_out))
+    print(r"    & \multicolumn{5}{c|}{\textbf{Meta-regressão}} \\ \cline{2-6}")
+    print("\n".join(map(lambda st: " & ".join(st) + r" \\ \cline{2-6}", latex_reg_out)))
+
     print(f"    \hline")
