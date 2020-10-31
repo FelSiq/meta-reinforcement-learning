@@ -25,7 +25,9 @@ params = {
 }
 
 for artificial in [False, True]:
-    fig, axes = plt.subplots(1, 4, figsize=(20, 15), sharex=True)
+    fig, axes = plt.subplots(
+        1, 4, figsize=(20, 15 / (1 + 5 * int(artificial))), sharex=True
+    )
 
     feat_imp = dict()
     X, y = utils.get_metadata(500, artificial=artificial)
