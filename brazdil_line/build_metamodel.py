@@ -61,37 +61,105 @@ assert y.shape[1] == num_base_models
 res_reg = []
 res_cls = []
 
-params_reg = {
-    "learning_rate": 0.08,
-    "max_depth": 5,
-    "min_child_weight": 30,
-    "gamma": 0.5,
-    "alpha": 0.5,
-    "lambda": 400.0,
-    "subsample": 0.7,
-    "colsample_bytree": 0.3,
-    "objective": "reg:squarederror",
-    "scale_pos_weight": 0.9,
-    "seed": 16,
-    "gpu_id": 0,
-    "tree_method": "gpu_hist",
-}
+if args.num_train_episodes == 500:
+    params_reg = {
+        "learning_rate": 0.08,
+        "max_depth": 5,
+        "min_child_weight": 30,
+        "gamma": 0.5,
+        "alpha": 0.5,
+        "lambda": 400.0,
+        "subsample": 0.7,
+        "colsample_bytree": 0.3,
+        "objective": "reg:squarederror",
+        "scale_pos_weight": 0.9,
+        "seed": 16,
+        "gpu_id": 0,
+        "tree_method": "gpu_hist",
+    }
 
-params_cls = {
-    "learning_rate": 0.08,
-    "max_depth": 5,
-    "min_child_weight": 30,
-    "gamma": 0.5,
-    "alpha": 0.5,
-    "lambda": 400.0,
-    "subsample": 0.7,
-    "colsample_bytree": 0.3,
-    "objective": "binary:logistic",
-    "scale_pos_weight": 0.9,
-    "seed": 16,
-    "gpu_id": 0,
-    "tree_method": "gpu_hist",
-}
+    params_cls = {
+        "learning_rate": 0.08,
+        "max_depth": 5,
+        "min_child_weight": 30,
+        "gamma": 0.5,
+        "alpha": 0.5,
+        "lambda": 400.0,
+        "subsample": 0.7,
+        "colsample_bytree": 0.3,
+        "objective": "binary:logistic",
+        "scale_pos_weight": 0.9,
+        "seed": 16,
+        "gpu_id": 0,
+        "tree_method": "gpu_hist",
+    }
+
+elif args.num_train_episodes == 1000:
+    params_reg = {
+        "learning_rate": 0.06,
+        "max_depth": 5,
+        "min_child_weight": 20,
+        "gamma": 0.5,
+        "alpha": 0.5,
+        "lambda": 200,
+        "subsample": 0.7,
+        "colsample_bytree": 0.4,
+        "objective": "reg:squarederror",
+        "scale_pos_weight": 0.85,
+        "seed": 16,
+        "gpu_id": 0,
+        "tree_method": "gpu_hist",
+    }
+
+    params_cls = {
+        "learning_rate": 0.06,
+        "max_depth": 5,
+        "min_child_weight": 20,
+        "gamma": 0.5,
+        "alpha": 0.5,
+        "lambda": 200,
+        "subsample": 0.7,
+        "colsample_bytree": 0.4,
+        "objective": "binary:logistic",
+        "scale_pos_weight": 0.85,
+        "seed": 16,
+        "gpu_id": 0,
+        "tree_method": "gpu_hist",
+    }
+
+elif args.num_train_episodes == 3000:
+    params_cls = {
+        "learning_rate": 0.1,
+        "max_depth": 5,
+        "min_child_weight": 20,
+        "gamma": 1.0,
+        "alpha": 0.0,
+        "lambda": 3.0,
+        "subsample": 0.8,
+        "colsample_bytree": 0.8,
+        "objective": "binary:logistic",
+        "scale_pos_weight": 2,
+        "seed": 16,
+        "gpu_id": 0,
+        "tree_method": "gpu_hist",
+    }
+
+    params_reg = {
+        "learning_rate": 0.1,
+        "max_depth": 5,
+        "min_child_weight": 20,
+        "gamma": 1.0,
+        "alpha": 0.0,
+        "lambda": 3.0,
+        "subsample": 0.8,
+        "colsample_bytree": 0.8,
+        "objective": "reg:squarederror",
+        "scale_pos_weight": 2,
+        "seed": 16,
+        "gpu_id": 0,
+        "tree_method": "gpu_hist",
+    }
+
 
 np.random.seed(16)
 random_seeds = np.random.randint(1000, size=y.shape[1])
