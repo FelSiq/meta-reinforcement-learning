@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import sklearn.metrics
 import sklearn.model_selection
-import sklearn.model_selection
 import scipy.stats.distributions
 
 import utils
@@ -71,14 +70,6 @@ def fit(
             plt.show()
 
 
-def plot_ft_importance(model):
-    feat_imp = pd.Series(model.get_booster().get_fscore()).sort_values(ascending=False)
-    feat_imp.plot(kind="bar", title="Feature Importances")
-    plt.ylabel("Feature Importance Score")
-    plt.tight_layout()
-    plt.show()
-
-
 def random_search(model_params, param_test, X, y, n_iter):
     random_search = sklearn.model_selection.RandomizedSearchCV(
         estimator=xgboost.sklearn.XGBClassifier(**model_params),
@@ -135,30 +126,53 @@ subplot_col = 4
 cv_fit = True
 plots = [True, False, False, True]
 cached = False
-classification = False
+classification = True
 
 # Preparation
-X, y = utils.get_metadata(num_train_episodes=500, artificial=False)
+X, y = utils.get_metadata(num_train_episodes=3000, artificial=False)
 
 if classification:
-    y = y > 0.0
+    y = (y <= 0.0) if y.size == 3000 else y > 0.0
 
 y = y.iloc[:, cls_id]
 
 X_train, X_test, y_train, y_test = sklearn.model_selection.train_test_split(
-    X, y, test_size=0.15, shuffle=True, random_state=32, stratify=y if classification else None
+    X,
+    y,
+    test_size=0.1,
+    shuffle=True,
+    random_state=33,
+    stratify=y if classification else None,
 )
+
+"""
+import sklearn.ensemble
+
+means = X_train.mean(axis=0, skipna=True)
+not_nan = ~means.isna()
+X_train = X_train.loc[:, not_nan].fillna(means[not_nan])
+X_test = X_test.loc[:, not_nan].fillna(means[not_nan])
+
+model = sklearn.ensemble.IsolationForest(n_estimators=8000, n_jobs=-1, random_state=16, max_features=0.6)
+model.fit(X_train, y_train)
+y_preds = model.predict(X_test)
+print("Test ROC AUC score:", sklearn.metrics.roc_auc_score(y_test, y_preds))
+print("Test accuracy score:", sklearn.metrics.accuracy_score(y_test, y_preds))
+maj_prop = np.mean(y_test)
+print("Maj class prop:", max(maj_prop, 1 - maj_prop))
+
+exit(2)
+"""
 
 assert X_train.shape[1] == X_test.shape[1]
 
 params = {
     "learning_rate": 0.08,
-    "n_estimators": 8000,
     "max_depth": 5,
     "min_child_weight": 30,
     "gamma": 0.5,
     "alpha": 0.5,
-    "lambda": 400.0,
+    "lambda": 400,
     "subsample": 0.7,
     "colsample_bytree": 0.3,
     "objective": "binary:logistic" if classification else "reg:squarederror",
@@ -187,15 +201,18 @@ if cv_fit and plots[0]:
 
 if classification:
     y_preds = xgboost.XGBClassifier(**params).fit(X_train, y_train).predict(X_test)
-    print("Test F1 score:", sklearn.metrics.roc_auc_score(y_test, y_preds))
+    print("Test ROC AUC score:", sklearn.metrics.roc_auc_score(y_test, y_preds))
     print("Test accuracy score:", sklearn.metrics.accuracy_score(y_test, y_preds))
     maj_prop = np.mean(y_test)
-    print("Maj class prop:", max(maj_prop, 1-maj_prop))
+    print("Maj class prop:", max(maj_prop, 1 - maj_prop))
 
 else:
     y_preds = xgboost.XGBRegressor(**params).fit(X_train, y_train).predict(X_test)
-    print("Test RMSE", sklearn.metrics.mean_squared_error(y_test, y_preds, squared=False))
+    print(
+        "Test RMSE", sklearn.metrics.mean_squared_error(y_test, y_preds, squared=False)
+    )
     print("Target std:", np.std(y_test))
+
 
 exit(0)
 
