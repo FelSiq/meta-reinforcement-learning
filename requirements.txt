@@ -1,4 +1,7 @@
 numpy
 pandas
-torch
 xgboost
+scikit-learn
+matplotlib
+seaborn
+scipy
