@@ -62,8 +62,17 @@ res_reg = []
 res_cls = []
 
 params_reg = {
+    "learning_rate": 0.08,
+    "max_depth": 5,
+    "min_child_weight": 30,
+    "gamma": 0.5,
+    "alpha": 0.5,
+    "lambda": 400.0,
+    "subsample": 0.7,
+    "colsample_bytree": 0.3,
     "objective": "reg:squarederror",
-    "max_depth": 2,
+    "scale_pos_weight": 0.9,
+    "seed": 16,
     "gpu_id": 0,
     "tree_method": "gpu_hist",
 }
@@ -105,7 +114,7 @@ for i in np.arange(num_base_models):
         dtrain=data_reg,
         params=params_reg,
         metrics="rmse",
-        num_boost_round=10,  # args.num_boost_round,
+        num_boost_round=args.num_boost_round,
         folds=fold_splitter_reg,
         seed=random_seeds[i],
         early_stopping_rounds=500,
@@ -134,7 +143,7 @@ if args.latex:
         [r"    & \textbf{$\text{ACC}_{\text{maioria}}$}"],
         [r"    & \textbf{$\text{ACC}_{\text{treino}} \pm \sigma$}"],
         [r"    & \textbf{$\text{ACC}_{\text{teste}} \pm \sigma$}"],
-        [r"    & \textbf{$\text{AUC}_{\text{traino}} \pm \sigma$}"],
+        [r"    & \textbf{$\text{AUC}_{\text{treino}} \pm \sigma$}"],
         [r"    & \textbf{$\text{AUC}_{\text{teste}} \pm \sigma$}"],
     ]
 
