@@ -27,14 +27,16 @@ def fit(
     if add_n_estimators:
         n_estimators = params.pop("n_estimators")
 
+    metric = "auc" if classification else "rmse"
+
     results = xgboost.cv(
         dtrain=dtrain,
         params=params,
         num_boost_round=num_boost_round,
         nfold=10,
-        stratified=True,
+        stratified=classification,
         early_stopping_rounds=early_stopping_rounds,
-        metrics="auc",
+        metrics=metric,
     )
 
     if add_n_estimators:
@@ -47,20 +49,20 @@ def fit(
     ].values
 
     print(
-        f"Margin (AUC): {err_mean_train - err_mean_test:.6f} pm {err_std_test + err_std_train:.6f}"
+        f"Margin ({metric}): {abs(err_mean_train - err_mean_test):.6f} pm {err_std_test + err_std_train:.6f}"
     )
 
     if plot:
         plt.errorbar(
             x=np.arange(results.shape[0]),
-            y=results["train-auc-mean"],
-            yerr=results["train-auc-std"],
+            y=results[f"train-{metric}-mean"],
+            yerr=results[f"train-{metric}-std"],
             label="train",
         )
         plt.errorbar(
             x=np.arange(results.shape[0]),
-            y=results["test-auc-mean"],
-            yerr=results["train-auc-std"],
+            y=results[f"test-{metric}-mean"],
+            yerr=results[f"train-{metric}-std"],
             label="test",
         )
         plt.legend()
@@ -133,14 +135,18 @@ subplot_col = 4
 cv_fit = True
 plots = [True, False, False, True]
 cached = False
+classification = False
 
 # Preparation
 X, y = utils.get_metadata(num_train_episodes=500, artificial=False)
 
-y = (y > 0.0).iloc[:, cls_id]
+if classification:
+    y = y > 0.0
+
+y = y.iloc[:, cls_id]
 
 X_train, X_test, y_train, y_test = sklearn.model_selection.train_test_split(
-    X, y, test_size=0.15, shuffle=True, random_state=32
+    X, y, test_size=0.15, shuffle=True, random_state=32, stratify=y if classification else None
 )
 
 assert X_train.shape[1] == X_test.shape[1]
@@ -155,7 +161,7 @@ params = {
     "lambda": 400.0,
     "subsample": 0.7,
     "colsample_bytree": 0.3,
-    "objective": "binary:logistic",
+    "objective": "binary:logistic" if classification else "reg:squarederror",
     "scale_pos_weight": 0.9,
     "seed": 16,
     "gpu_id": 0,
@@ -179,11 +185,18 @@ if cv_fit and plots[0]:
         show=False,
     )
 
-y_preds = xgboost.XGBClassifier(**params).fit(X_train, y_train).predict(X_test)
-print("Test F1 score:", sklearn.metrics.roc_auc_score(y_test, y_preds))
-print("Test accuracy score:", sklearn.metrics.accuracy_score(y_test, y_preds))
-maj_prop = np.mean(y_test)
-print("Maj class prop:", max(maj_prop, 1-maj_prop))
+if classification:
+    y_preds = xgboost.XGBClassifier(**params).fit(X_train, y_train).predict(X_test)
+    print("Test F1 score:", sklearn.metrics.roc_auc_score(y_test, y_preds))
+    print("Test accuracy score:", sklearn.metrics.accuracy_score(y_test, y_preds))
+    maj_prop = np.mean(y_test)
+    print("Maj class prop:", max(maj_prop, 1-maj_prop))
+
+else:
+    y_preds = xgboost.XGBRegressor(**params).fit(X_train, y_train).predict(X_test)
+    print("Test RMSE", sklearn.metrics.mean_squared_error(y_test, y_preds, squared=False))
+    print("Target std:", np.std(y_test))
+
 exit(0)
 
 
