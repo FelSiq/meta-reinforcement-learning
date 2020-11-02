@@ -1,3 +1,4 @@
+"""Plot the effects of random noise injected in meta-features."""
 import os
 
 import pandas as pd

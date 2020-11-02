@@ -1,3 +1,4 @@
+"""Collect metadata."""
 import typing as t
 import argparse
 import os
@@ -17,6 +18,7 @@ import utils
 
 
 def get_mtf_extraction_methods():
+    """Get meta-feature extraction methods from the appropriate module."""
     return [
         (name, method)
         for name, method in inspect.getmembers(metafeatures)
@@ -28,15 +30,18 @@ _mtf_methods = get_mtf_extraction_methods()
 
 
 def save_data(data: pd.DataFrame, full_path: str) -> None:
+    """Save metadata in a file."""
     data.to_csv(full_path, float_format="%.6f")
 
 
 def save_seeds(full_path: str, *args):
+    """Save random seeds in a file."""
     with open(full_path, "w") as f_aux:
         f_aux.write(",".join(map(str, args)))
 
 
 def load_seeds(full_path: str):
+    """Load seeds from a file."""
     with open(full_path, "r") as f_aux:
         return map(int, f_aux.read().strip().split(","))
 
@@ -72,6 +77,7 @@ def run_base_models(
     num_episodes: int,
     y: np.ndarray,
 ) -> t.List[float]:
+    """Get performance of base models in the environment."""
     res = len(base_models) * [0.0]
 
     for i, model in enumerate(base_models):
@@ -93,6 +99,7 @@ def run_base_models(
 def init_env(
     env_seed: int, hyperparam_seed: int, env_max_steps: int, reward_per_action: float
 ):
+    """Init a random Gridworld environment."""
     if env_seed is None or hyperparam_seed is None:
         raise ValueError("Both random seeds must be given!")
 
@@ -119,6 +126,7 @@ def init_env(
 
 
 def prepare_base_models(env, random_state: int):
+    """Instantiate the base models."""
     candidates = [
         algs.sarsa.SARSA,
         algs.mc_control.MCControl,
@@ -137,6 +145,7 @@ def prepare_base_models(env, random_state: int):
 def adjust_seeds(
     env_seed: int, hyperparam_seed: int, alg_seed: int, cur_ind: int, new_ind: int
 ):
+    """Adjust seeds to re-run an environment while keeping the result values."""
     assert new_ind >= 0
     assert cur_ind >= 0
 
@@ -150,6 +159,7 @@ def adjust_seeds(
 
 
 def get_all_mtf_names():
+    """Get all meta-feature names (intermediate values combined with summary)."""
     env = init_env(
         env_seed=0,
         hyperparam_seed=0,
@@ -182,6 +192,7 @@ def build_metadataset(
     reward_per_action: float,
     debug: bool,
 ):
+    """Build a metadataset with the given configurations."""
     assert num_episodes > 0
 
     base_alg_names = ["SARSA", "MCCONTROL", "QLEARNING", "DQLEARNING"]

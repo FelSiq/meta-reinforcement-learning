@@ -1,3 +1,4 @@
+"""Plot the environment varying hyper-parameters."""
 import matplotlib.pyplot as plt
 import gym
 import numpy as np

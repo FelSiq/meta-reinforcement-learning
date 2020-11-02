@@ -1,3 +1,4 @@
+"""Utilities available to other modules."""
 import typing as t
 
 import pandas as pd
