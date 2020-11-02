@@ -13,6 +13,7 @@ import algs.mc_control
 import algs.q_learning
 import algs.double_q_learning
 import metafeatures
+import utils
 
 
 def get_mtf_extraction_methods():
@@ -117,20 +118,6 @@ def init_env(
     return env
 
 
-def binsearch(y):
-    start = 0
-    ind = y.shape[0]
-    end = y.shape[0] - 1
-    while start <= end:
-        middle = start + (end - start) // 2
-        if pd.isna(y.iloc[middle, :]).all():
-            ind = middle
-            end = middle - 1
-        else:
-            start = middle + 1
-    return ind
-
-
 def prepare_base_models(env, random_state: int):
     candidates = [
         algs.sarsa.SARSA,
@@ -232,7 +219,7 @@ def build_metadataset(
 
     try:
         y = pd.read_csv(y_checkpoint_path, index_col=0)
-        start_ind_y = binsearch(y)
+        start_ind_y = utils.binsearch(y)
         print(
             f"Loaded target y '{y_checkpoint_path}' checkpoint files (starting from position {start_ind_y + 1})."
         )
@@ -249,7 +236,7 @@ def build_metadataset(
             size = y.shape[0]
             raise ValueError
 
-        start_ind_X = binsearch(X)
+        start_ind_X = utils.binsearch(X)
         print(
             f"Loaded{' artificial' if artificial else ''} features X '{X_checkpoint_path}' checkpoint "
             f"files (starting from position {start_ind_X + 1}."

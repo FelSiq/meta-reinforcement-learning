@@ -17,3 +17,17 @@ def get_metadata(
     y = data.iloc[:, -num_base_models:]
 
     return X, y
+
+
+def binsearch(y):
+    start = 0
+    ind = y.shape[0]
+    end = y.shape[0] - 1
+    while start <= end:
+        middle = start + (end - start) // 2
+        if pd.isna(y.iloc[middle, :]).all():
+            ind = middle
+            end = middle - 1
+        else:
+            start = middle + 1
+    return ind
