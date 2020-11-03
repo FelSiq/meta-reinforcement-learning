@@ -105,7 +105,6 @@ for j in np.arange(y.shape[1]):
 
         np.save(f"./backup/{y.columns[j]}_perf.npy", performance)
 
-    plt.subplot(2, 2, j + 1)
     plt.title(y.columns[j])
     plt.errorbar(
         x=noise_std_props,
@@ -134,6 +133,13 @@ for j in np.arange(y.shape[1]):
         color="red",
     )
 
-# plt.legend()
-plt.tight_layout()
-plt.show()
+    plt.hlines(
+        y=0.5,
+        xmin=0,
+        xmax=noise_std_props[-1],
+        linestyle="dotted",
+        color="black",
+    )
+
+    plt.tight_layout()
+    plt.show()
