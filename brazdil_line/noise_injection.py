@@ -41,22 +41,21 @@ np.random.seed(16)
 
 noise_std_props = np.linspace(0, 10, num_it)
 
-
 baseline_value = np.array(
     [
-        0.647,
-        0.680,
-        0.679,
-        0.751,
+        0.702,
+        0.740,
+        0.750,
+        0.677,
     ]
 )
 
 baseline_std = np.array(
     [
         0.033,
-        0.029,
         0.030,
-        0.015,
+        0.032,
+        0.043,
     ]
 )
 
@@ -79,7 +78,9 @@ for j in np.arange(y.shape[1]):
     try:
         performance = np.load(f"./backup/{y.columns[j]}_perf.npy")
         start_ind = utils.binsearch(performance)
-        print(f"Got backup files for class {y.columns[j]} starting from index {start_ind}.")
+        print(
+            f"Got backup files for class {y.columns[j]} starting from index {start_ind}."
+        )
 
     except FileNotFoundError:
         performance = np.full((num_it, 2), fill_value=np.nan)
@@ -104,6 +105,8 @@ for j in np.arange(y.shape[1]):
 
         np.save(f"./backup/{y.columns[j]}_perf.npy", performance)
 
+    plt.subplot(2, 2, j + 1)
+    plt.title(y.columns[j])
     plt.errorbar(
         x=noise_std_props,
         y=performance[:, 0],
@@ -111,27 +114,26 @@ for j in np.arange(y.shape[1]):
         label=y.columns[j],
     )
 
-plt.xlim((0, noise_std_props[-1]))
-plt.ylim((0.45, 0.80))
-plt.xlabel("Prop. de ruído")
-plt.ylabel("AUC")
-plt.hlines(
-    y=0.5,
-    xmin=0,
-    xmax=noise_std_props[-1],
-    linestyle="dashed",
-    color="red",
-    label="Referência",
-)
-"""
-plt.hlines(
-    y=[baseline_value + baseline_std, baseline_value - baseline_std],
-    xmin=0,
-    xmax=1,
-    linestyle="dotted",
-    color="red",
-)
-"""
+    plt.xlim((0, noise_std_props[-1]))
+    plt.ylim((0.45, 0.80))
+    plt.xlabel("Prop. de ruído")
+    plt.ylabel("AUC")
+    plt.hlines(
+        y=baseline_value[j],
+        xmin=0,
+        xmax=noise_std_props[-1],
+        linestyle="dashed",
+        color="red",
+        label="Referência",
+    )
+    plt.hlines(
+        y=[baseline_value[j] + baseline_std[j], baseline_value[j] - baseline_std[j]],
+        xmin=0,
+        xmax=noise_std_props[-1],
+        linestyle="dotted",
+        color="red",
+    )
 
-plt.legend()
+# plt.legend()
+plt.tight_layout()
 plt.show()
