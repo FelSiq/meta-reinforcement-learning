@@ -21,12 +21,15 @@ def get_metadata(
 
 
 def binsearch(y):
+    if isinstance(y, pd.DataFrame):
+        y = y.values
+
     start = 0
     ind = y.shape[0]
     end = y.shape[0] - 1
     while start <= end:
         middle = start + (end - start) // 2
-        if pd.isna(y.iloc[middle, :]).all():
+        if pd.isna(y[middle, :]).all():
             ind = middle
             end = middle - 1
         else:

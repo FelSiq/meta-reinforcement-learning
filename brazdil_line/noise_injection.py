@@ -78,12 +78,14 @@ for j in np.arange(y.shape[1]):
 
     try:
         performance = np.load(f"./backup/{y.columns[j]}_perf.npy")
-        print(f"Got backup files for class {y.columns[j]}.")
+        start_ind = utils.binsearch(performance)
+        print(f"Got backup files for class {y.columns[j]} starting from index {start_ind}.")
 
     except FileNotFoundError:
         performance = np.full((num_it, 2), fill_value=np.nan)
+        start_ind = 0
 
-    for i, noise_std_prop in enumerate(noise_std_props):
+    for i, noise_std_prop in enumerate(noise_std_props[start_ind:], start_ind):
         print(f"{i + 1:<{3}} / {noise_std_props.size}...", end="\r")
         X_noise = X + noise_std_prop * X.std(axis=0).values * np.random.randn(*X.shape)
         dtrain = xgboost.DMatrix(X_noise, label=y_cur)
