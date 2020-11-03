@@ -19,7 +19,7 @@ This repository hold code related to experiments with meta-learning and reinforc
 
 # References
 <a id="1">[1]</a> 
-VILALTA, R.; GIRAUD-CARRIER, C.; BRAZDIL, P.; SOARES, C. Using meta-learningto support data mining.International Journal of Computer Science & Applications,v. 1, 01 2004.
+VILALTA, R.; GIRAUD-CARRIER, C.; BRAZDIL, P.; SOARES, C. Using meta-learningto support data mining. International Journal of Computer Science & Applications, v. 1, 01 2004.
 
 <a id="2">[2]</a> 
-[2] BRAZDIL, P.; GIRAUD-CARRIER, C.; SOARES, C.; VILALTA, R.Metalearning - Appli-cations to Data Mining.[S.l.: s.n.], 2009. ISBN 978-3-540-73262-4.
+[2] BRAZDIL, P.; GIRAUD-CARRIER, C.; SOARES, C.; VILALTA, R.Metalearning - Applications to Data Mining.[S.l.: s.n.], 2009. ISBN 978-3-540-73262-4.
